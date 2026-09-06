@@ -1,364 +1,763 @@
 const threads = [
-  {name:"Creative Studio",state:"working",x:-3,z:-1,progress:72,icon:"✦"},
-  {name:"Career Planning",state:"waiting",x:2,z:-2,progress:48,icon:"◈"},
-  {name:"Business School",state:"finished",x:-1,z:2,progress:100,icon:"◆"},
-  {name:"Idea Lab",state:"idle",x:3,z:2,progress:26,icon:"✧"},
-  {name:"Project Hub",state:"dormant",x:0,z:0,progress:12,icon:"◇"}
+  {name:"Creative Studio", state:"working", x:-3, z:-1, progress:72, icon:"✦"},
+  {name:"Career Planning", state:"waiting", x:2, z:-2, progress:48, icon:"◈"},
+  {name:"Business School", state:"finished", x:-1, z:2, progress:100, icon:"◆"},
+  {name:"Idea Lab", state:"idle", x:3, z:2, progress:26, icon:"✧"},
+  {name:"Project Hub", state:"dormant", x:0, z:0, progress:12, icon:"◇"}
 ];
 
-const colors={
-  working:0x8f5cff,
+const colors = {
+  working:0x9b5cff,
   waiting:0xffc45c,
   finished:0x5fffc4,
   idle:0x62dfff,
   dormant:0x777080
 };
 
-let scene,camera,renderer,raycaster,mouse;
-let selected=null;
-const residents=[];
+let scene;
+let camera;
+let renderer;
+let raycaster;
+let pointer;
 
-const world=document.getElementById("world");
+const residents = [];
+const world = document.getElementById("world");
 
-function init(){
-  scene=new THREE.Scene();
-  scene.background=new THREE.Color(0x05030b);
-  scene.fog=new THREE.FogExp2(0x080611,.045);
+function startWorld(){
 
-  camera=new THREE.PerspectiveCamera(
-    42,
-    innerWidth/innerHeight,
-    .1,
+  scene = new THREE.Scene();
+
+  scene.background = new THREE.Color(0x05030b);
+
+  scene.fog = new THREE.FogExp2(
+    0x080611,
+    0.035
+  );
+
+  camera = new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth / window.innerHeight,
+    0.1,
     100
   );
+
   camera.position.set(8,8,10);
   camera.lookAt(0,0,0);
 
-  renderer=new THREE.WebGLRenderer({
+  renderer = new THREE.WebGLRenderer({
     antialias:true,
-    alpha:false,
     powerPreference:"high-performance"
   });
 
-  renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));
-  renderer.setSize(innerWidth,innerHeight);
-  renderer.shadowMap.enabled=true;
-  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio || 1, 2)
+  );
+
+  renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+  );
+
+  renderer.shadowMap.enabled = true;
+
+  world.innerHTML = "";
   world.appendChild(renderer.domElement);
 
-  raycaster=new THREE.Raycaster();
-  mouse=new THREE.Vector2();
+  raycaster = new THREE.Raycaster();
+  pointer = new THREE.Vector2();
 
-  addLights();
-  addStars();
+  createLighting();
+  createStars();
   createIsland();
-  threads.forEach(createResident);
+  createResidents();
 
-  setupTouch();
-  setupUI();
+  renderer.domElement.addEventListener(
+    "pointerdown",
+    selectObject
+  );
 
-  addEventListener("resize",resize);
+  renderer.domElement.addEventListener(
+    "touchstart",
+    touchStart,
+    {passive:true}
+  );
+
+  renderer.domElement.addEventListener(
+    "touchmove",
+    touchMove,
+    {passive:true}
+  );
+
+  window.addEventListener("resize", resize);
+
   animate();
 }
 
-function addLights(){
-  const ambient=new THREE.HemisphereLight(0x8d7cff,0x090611,1.8);
+
+/* ---------- LIGHTING ---------- */
+
+function createLighting(){
+
+  const ambient = new THREE.HemisphereLight(
+    0xb7a8ff,
+    0x090611,
+    2
+  );
+
   scene.add(ambient);
 
-  const moon=new THREE.DirectionalLight(0xb9b2ff,2.8);
-  moon.position.set(-5,10,5);
-  moon.castShadow=true;
+  const moon = new THREE.DirectionalLight(
+    0xffffff,
+    3
+  );
+
+  moon.position.set(-5,10,6);
+  moon.castShadow = true;
+
   scene.add(moon);
 
-  const glow=new THREE.PointLight(0x744cff,18,20);
-  glow.position.set(0,2,0);
-  scene.add(glow);
+  const purpleGlow = new THREE.PointLight(
+    0x8b4dff,
+    25,
+    25
+  );
+
+  purpleGlow.position.set(0,4,0);
+
+  scene.add(purpleGlow);
 }
 
-function addStars(){
-  const geo=new THREE.BufferGeometry();
-  const count=650;
-  const pos=new Float32Array(count*3);
+
+/* ---------- STARS ---------- */
+
+function createStars(){
+
+  const geometry =
+    new THREE.BufferGeometry();
+
+  const count = 900;
+
+  const positions =
+    new Float32Array(count * 3);
 
   for(let i=0;i<count;i++){
-    pos[i*3]=(Math.random()-.5)*55;
-    pos[i*3+1]=Math.random()*24+3;
-    pos[i*3+2]=(Math.random()-.5)*55;
+
+    positions[i*3] =
+      (Math.random()-0.5)*60;
+
+    positions[i*3+1] =
+      Math.random()*25+3;
+
+    positions[i*3+2] =
+      (Math.random()-0.5)*60;
   }
 
-  geo.setAttribute("position",new THREE.BufferAttribute(pos,3));
+  geometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(
+      positions,
+      3
+    )
+  );
 
-  const mat=new THREE.PointsMaterial({
-    color:0xffffff,
-    size:.055,
-    transparent:true,
-    opacity:.8
-  });
+  const material =
+    new THREE.PointsMaterial({
+      color:0xffffff,
+      size:0.06,
+      transparent:true,
+      opacity:0.85
+    });
 
-  scene.add(new THREE.Points(geo,mat));
+  const stars =
+    new THREE.Points(
+      geometry,
+      material
+    );
+
+  scene.add(stars);
 }
 
-function createIsland(){
-  const base=new THREE.Mesh(
-    new THREE.CylinderGeometry(7,5.5,1.4,48),
-    new THREE.MeshStandardMaterial({
-      color:0x171226,
-      roughness:.88,
-      metalness:.08
-    })
-  );
 
-  base.position.y=-.7;
-  base.receiveShadow=true;
+/* ---------- ISLAND ---------- */
+
+function createIsland(){
+
+  const base =
+    new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        7,
+        5.5,
+        1.4,
+        48
+      ),
+      new THREE.MeshStandardMaterial({
+        color:0x171226,
+        roughness:0.9
+      })
+    );
+
+  base.position.y = -0.7;
+  base.receiveShadow = true;
+
   scene.add(base);
 
-  const grass=new THREE.Mesh(
-    new THREE.CylinderGeometry(6.7,5.2,.42,48),
-    new THREE.MeshStandardMaterial({
-      color:0x263d38,
-      roughness:1
-    })
-  );
 
-  grass.position.y=.05;
-  grass.receiveShadow=true;
-  scene.add(grass);
-
-  const ring=new THREE.Mesh(
-    new THREE.TorusGeometry(6.75,.035,8,96),
-    new THREE.MeshBasicMaterial({
-      color:0x8f5cff,
-      transparent:true,
-      opacity:.55
-    })
-  );
-
-  ring.rotation.x=Math.PI/2;
-  ring.position.y=.28;
-  scene.add(ring);
-
-  for(let i=0;i<12;i++){
-    const a=(i/12)*Math.PI*2;
-    const r=5.4;
-
-    const tree=new THREE.Group();
-
-    const trunk=new THREE.Mesh(
-      new THREE.CylinderGeometry(.08,.12,.65,8),
-      new THREE.MeshStandardMaterial({color:0x392b31})
-    );
-    trunk.position.y=.45;
-
-    const crown=new THREE.Mesh(
-      new THREE.SphereGeometry(.42,10,8),
+  const grass =
+    new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        6.7,
+        5.2,
+        0.45,
+        48
+      ),
       new THREE.MeshStandardMaterial({
-        color:0x315c51,
+        color:0x29463d,
         roughness:1
       })
     );
-    crown.position.y=.9;
 
-    tree.add(trunk,crown);
-    tree.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
+  grass.position.y = 0;
+
+  grass.receiveShadow = true;
+
+  scene.add(grass);
+
+
+  const ring =
+    new THREE.Mesh(
+      new THREE.TorusGeometry(
+        6.7,
+        0.04,
+        8,
+        96
+      ),
+      new THREE.MeshBasicMaterial({
+        color:0x9b5cff
+      })
+    );
+
+  ring.rotation.x = Math.PI/2;
+  ring.position.y = 0.25;
+
+  scene.add(ring);
+
+
+  /* TREES */
+
+  for(let i=0;i<14;i++){
+
+    const angle =
+      (i/14)*Math.PI*2;
+
+    const radius = 5.4;
+
+    const tree =
+      new THREE.Group();
+
+
+    const trunk =
+      new THREE.Mesh(
+        new THREE.CylinderGeometry(
+          0.08,
+          0.13,
+          0.7,
+          8
+        ),
+        new THREE.MeshStandardMaterial({
+          color:0x49332c
+        })
+      );
+
+    trunk.position.y = 0.4;
+
+
+    const crown =
+      new THREE.Mesh(
+        new THREE.SphereGeometry(
+          0.45,
+          12,
+          10
+        ),
+        new THREE.MeshStandardMaterial({
+          color:0x3c725d
+        })
+      );
+
+    crown.position.y = 0.9;
+
+
+    tree.add(
+      trunk,
+      crown
+    );
+
+
+    tree.position.set(
+      Math.cos(angle)*radius,
+      0,
+      Math.sin(angle)*radius
+    );
+
     scene.add(tree);
   }
 }
 
-function createResident(data){
-  const group=new THREE.Group();
 
-  const body=new THREE.Mesh(
-    new THREE.CapsuleGeometry(.28,.42,5,10),
-    new THREE.MeshStandardMaterial({
-      color:0xddd9ee,
-      roughness:.32,
-      metalness:.35
-    })
+/* ---------- RESIDENTS ---------- */
+
+function createResidents(){
+
+  threads.forEach((data,index)=>{
+
+    const robot =
+      new THREE.Group();
+
+
+    /* BODY */
+
+    const body =
+      new THREE.Mesh(
+        new THREE.SphereGeometry(
+          0.32,
+          16,
+          12
+        ),
+        new THREE.MeshStandardMaterial({
+          color:0xdedced,
+          metalness:0.35,
+          roughness:0.3
+        })
+      );
+
+    body.scale.y = 1.25;
+    body.position.y = 0.72;
+
+    body.castShadow = true;
+
+
+    /* HEAD */
+
+    const head =
+      new THREE.Mesh(
+        new THREE.SphereGeometry(
+          0.35,
+          16,
+          12
+        ),
+        new THREE.MeshStandardMaterial({
+          color:0xf2efff,
+          metalness:0.25,
+          roughness:0.25
+        })
+      );
+
+    head.position.y = 1.35;
+
+    head.castShadow = true;
+
+
+    /* VISOR */
+
+    const visor =
+      new THREE.Mesh(
+        new THREE.SphereGeometry(
+          0.22,
+          16,
+          10
+        ),
+        new THREE.MeshBasicMaterial({
+          color:colors[data.state]
+        })
+      );
+
+    visor.scale.set(
+      1,
+      0.5,
+      0.3
+    );
+
+    visor.position.set(
+      0,
+      1.35,
+      0.29
+    );
+
+
+    /* GLOW */
+
+    const light =
+      new THREE.PointLight(
+        colors[data.state],
+        3,
+        2.5
+      );
+
+    light.position.set(
+      0,
+      1.2,
+      0.25
+    );
+
+
+    robot.add(
+      body,
+      head,
+      visor,
+      light
+    );
+
+
+    /* ATTENTION BEACON */
+
+    if(
+      data.state === "working" ||
+      data.state === "waiting"
+    ){
+
+      const beacon =
+        new THREE.Mesh(
+          new THREE.SphereGeometry(
+            0.1,
+            10,
+            8
+          ),
+          new THREE.MeshBasicMaterial({
+            color:colors[data.state]
+          })
+        );
+
+      beacon.position.y = 1.85;
+
+      robot.add(beacon);
+    }
+
+
+    robot.position.set(
+      data.x,
+      0,
+      data.z
+    );
+
+
+    robot.userData = {
+      ...data,
+      baseX:data.x,
+      baseZ:data.z,
+      phase:Math.random()*Math.PI*2
+    };
+
+
+    scene.add(robot);
+
+    residents.push(robot);
+  });
+}
+
+
+/* ---------- TAP ---------- */
+
+function selectObject(event){
+
+  pointer.x =
+    (event.clientX / window.innerWidth)*2-1;
+
+  pointer.y =
+    -(event.clientY / window.innerHeight)*2+1;
+
+  raycaster.setFromCamera(
+    pointer,
+    camera
   );
-  body.position.y=.72;
-  body.castShadow=true;
 
-  const head=new THREE.Mesh(
-    new THREE.SphereGeometry(.31,16,12),
-    new THREE.MeshStandardMaterial({
-      color:0xeeeeff,
-      roughness:.22,
-      metalness:.25
-    })
-  );
-  head.position.y=1.28;
-  head.castShadow=true;
+  const hits =
+    raycaster.intersectObjects(
+      residents,
+      true
+    );
 
-  const visor=new THREE.Mesh(
-    new THREE.SphereGeometry(.205,16,10),
-    new THREE.MeshBasicMaterial({
-      color:colors[data.state]
-    })
-  );
-  visor.scale.set(1,.48,.28);
-  visor.position.set(0,1.29,.25);
+  if(!hits.length) return;
 
-  const glow=new THREE.PointLight(colors[data.state],2.4,2.5);
-  glow.position.set(0,1.05,.2);
+  let object = hits[0].object;
 
-  group.add(body,head,visor,glow);
-
-  const beacon=new THREE.Mesh(
-    new THREE.SphereGeometry(.08,10,8),
-    new THREE.MeshBasicMaterial({
-      color:colors[data.state]
-    })
-  );
-  beacon.position.y=1.72;
-
-  if(data.state==="waiting"||data.state==="working"){
-    group.add(beacon);
+  while(
+    object.parent &&
+    !object.userData.name
+  ){
+    object = object.parent;
   }
 
-  group.position.set(data.x,0,data.z);
+  if(object.userData.name){
 
-  group.userData={
-    ...data,
-    baseX:data.x,
-    baseZ:data.z,
-    phase:Math.random()*Math.PI*2
+    const data =
+      object.userData;
+
+    document.getElementById(
+      "sheetTitle"
+    ).textContent = data.name;
+
+    document.getElementById(
+      "sheetState"
+    ).textContent =
+      data.state.toUpperCase();
+
+    document.getElementById(
+      "sheetText"
+    ).textContent =
+      getStateText(data.state);
+
+    document.getElementById(
+      "progressFill"
+    ).style.width =
+      data.progress + "%";
+
+    document.getElementById(
+      "sheet"
+    ).classList.add("open");
+  }
+}
+
+
+function getStateText(state){
+
+  const descriptions = {
+
+    working:
+      "This conversation is actively working. Your resident is moving through the world.",
+
+    waiting:
+      "This conversation is waiting for your attention.",
+
+    finished:
+      "This conversation has completed its current task.",
+
+    idle:
+      "This conversation is available and resting.",
+
+    dormant:
+      "This conversation has been quiet for a while."
   };
 
-  scene.add(group);
-  residents.push(group);
+  return descriptions[state];
 }
 
-function selectResident(obj){
-  selected=obj;
 
-  document.getElementById("sheetTitle").textContent=obj.userData.name;
-  document.getElementById("sheetState").textContent=
-    obj.userData.state.toUpperCase();
+/* ---------- CAMERA ---------- */
 
-  document.getElementById("sheetText").textContent=
-    stateText(obj.userData.state);
+let targetX = 8;
+let targetY = 8;
+let targetZ = 10;
 
-  document.getElementById("progressFill").style.width=
-    obj.userData.progress+"%";
+let lastTouchX = 0;
+let lastTouchY = 0;
 
-  document.getElementById("sheet").classList.add("open");
+
+function touchStart(event){
+
+  if(event.touches.length !== 1)
+    return;
+
+  lastTouchX =
+    event.touches[0].clientX;
+
+  lastTouchY =
+    event.touches[0].clientY;
 }
 
-function stateText(state){
-  const text={
-    working:"This conversation is actively working. Your resident is moving through the world.",
-    waiting:"This conversation is waiting for your attention.",
-    finished:"This conversation has completed its current task.",
-    idle:"This conversation is available and resting.",
-    dormant:"This conversation has been quiet for a while."
-  };
 
-  return text[state]||"Conversation status available.";
+function touchMove(event){
+
+  if(event.touches.length !== 1)
+    return;
+
+  const x =
+    event.touches[0].clientX;
+
+  const y =
+    event.touches[0].clientY;
+
+  const dx =
+    x-lastTouchX;
+
+  const dy =
+    y-lastTouchY;
+
+  targetX -= dx*0.025;
+  targetZ += dy*0.025;
+
+  lastTouchX = x;
+  lastTouchY = y;
 }
 
-function setupTouch(){
-  renderer.domElement.addEventListener("pointerdown",e=>{
-    mouse.x=(e.clientX/innerWidth)*2-1;
-    mouse.y=-(e.clientY/innerHeight)*2+1;
 
-    raycaster.setFromCamera(mouse,camera);
-
-    const hits=raycaster.intersectObjects(residents,true);
-
-    if(hits.length){
-      let obj=hits[0].object;
-
-      while(obj.parent && !obj.userData.name){
-        obj=obj.parent;
-      }
-
-      if(obj.userData.name)selectResident(obj);
-    }
-  });
-}
-
-let targetX=8,targetY=8,targetZ=10;
-
-function setupUI(){
-  document.getElementById("closeSheet").onclick=()=>{
-    document.getElementById("sheet").classList.remove("open");
-    selected=null;
-  };
-
-  let startX=0,startY=0;
-
-  renderer.domElement.addEventListener("touchstart",e=>{
-    if(e.touches.length===1){
-      startX=e.touches[0].clientX;
-      startY=e.touches[0].clientY;
-    }
-  },{passive:true});
-
-  renderer.domElement.addEventListener("touchmove",e=>{
-    if(e.touches.length===1){
-      const dx=e.touches[0].clientX-startX;
-      const dy=e.touches[0].clientY-startY;
-
-      targetX-=dx*.018;
-      targetZ+=dy*.018;
-
-      startX=e.touches[0].clientX;
-      startY=e.touches[0].clientY;
-    }
-  },{passive:true});
-
-  renderer.domElement.addEventListener("wheel",e=>{
-    targetY+=e.deltaY*.01;
-    targetY=Math.max(4,Math.min(15,targetY));
-  },{passive:true});
-}
+/* ---------- ANIMATION ---------- */
 
 function animate(){
-  requestAnimationFrame(animate);
 
-  const t=performance.now()*.001;
+  requestAnimationFrame(
+    animate
+  );
 
-  camera.position.x+=(targetX-camera.position.x)*.05;
-  camera.position.y+=(targetY-camera.position.y)*.05;
-  camera.position.z+=(targetZ-camera.position.z)*.05;
-  camera.lookAt(0,0,0);
+  const time =
+    performance.now()/1000;
 
-  residents.forEach((r,i)=>{
-    const d=r.userData;
 
-    if(d.state==="working"){
-      r.position.x=d.baseX+Math.sin(t*1.5+d.phase)*.55;
-      r.position.z=d.baseZ+Math.cos(t*1.2+d.phase)*.55;
-      r.rotation.y+=.025;
-    }else{
-      r.position.y=Math.sin(t*1.2+d.phase)*.035;
-    }
+  camera.position.x +=
+    (targetX-camera.position.x)*0.05;
 
-    if(d.state==="waiting"){
-      r.children.forEach(c=>{
-        if(c.isMesh && c.position.y>1.6){
-          c.scale.setScalar(1+Math.sin(t*4+d.phase)*.35);
+  camera.position.y +=
+    (targetY-camera.position.y)*0.05;
+
+  camera.position.z +=
+    (targetZ-camera.position.z)*0.05;
+
+  camera.lookAt(
+    0,
+    0,
+    0
+  );
+
+
+  residents.forEach(
+    (robot)=>{
+
+      const data =
+        robot.userData;
+
+
+      if(data.state === "working"){
+
+        robot.position.x =
+          data.baseX +
+          Math.sin(
+            time*1.5 +
+            data.phase
+          )*0.5;
+
+        robot.position.z =
+          data.baseZ +
+          Math.cos(
+            time*1.2 +
+            data.phase
+          )*0.5;
+
+        robot.rotation.y +=
+          0.02;
+
+      }else{
+
+        robot.position.y =
+          Math.sin(
+            time*1.5 +
+            data.phase
+          )*0.04;
+      }
+
+
+      if(data.state === "waiting"){
+
+        const beacon =
+          robot.children[
+            robot.children.length-1
+          ];
+
+        if(beacon){
+
+          const pulse =
+            1 +
+            Math.sin(
+              time*5+
+              data.phase
+            )*0.35;
+
+          beacon.scale.setScalar(
+            pulse
+          );
         }
-      });
-    }
+      }
 
-    if(d.state==="finished"){
-      r.rotation.y=Math.sin(t*.5+d.phase)*.12;
     }
-  });
+  );
 
-  renderer.render(scene,camera);
+
+  renderer.render(
+    scene,
+    camera
+  );
 }
+
+
+/* ---------- RESIZE ---------- */
 
 function resize(){
-  camera.aspect=innerWidth/innerHeight;
+
+  if(!camera || !renderer)
+    return;
+
+  camera.aspect =
+    window.innerWidth /
+    window.innerHeight;
+
   camera.updateProjectionMatrix();
 
-  renderer.setSize(innerWidth,innerHeight);
-  renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));
+  renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+  );
 }
 
-const script=document.createElement("script");
-script.src="https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.min.js";
-script.onload=init;
-document.head.appendChild(script);
+
+/* ---------- CLOSE SHEET ---------- */
+
+const closeButton =
+  document.getElementById(
+    "closeSheet"
+  );
+
+if(closeButton){
+
+  closeButton.onclick = ()=>{
+
+    document.getElementById(
+      "sheet"
+    ).classList.remove("open");
+  };
+}
+
+
+/* ---------- LOAD THREE.JS ---------- */
+
+const three =
+  document.createElement("script");
+
+three.src =
+  "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.min.js";
+
+three.onload = ()=>{
+  startWorld();
+};
+
+three.onerror = ()=>{
+
+  world.innerHTML = `
+    <div style="
+      position:absolute;
+      inset:0;
+      display:grid;
+      place-items:center;
+      padding:30px;
+      text-align:center;
+      color:white;
+      font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+    ">
+      <div>
+        <div style="font-size:42px">✦</div>
+        <h2>World engine unavailable</h2>
+        <p style="color:#aaa">
+          Please refresh the page and try again.
+        </p>
+      </div>
+    </div>
+  `;
+};
+
+document.head.appendChild(three);
