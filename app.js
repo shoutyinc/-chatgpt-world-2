@@ -3,11 +3,41 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.m
 const world = document.getElementById("world");
 
 const threads = [
-  {name:"Creative Studio",state:"working",x:-3.2,z:-1.8,progress:72,type:"studio"},
-  {name:"Career Planning",state:"waiting",x:3.0,z:-1.8,progress:48,type:"office"},
-  {name:"Business School",state:"finished",x:-2.5,z:2.5,progress:100,type:"school"},
-  {name:"Idea Lab",state:"idle",x:2.5,z:2.6,progress:26,type:"lab"},
-  {name:"Project Hub",state:"dormant",x:0,z:0,progress:12,type:"hub"}
+  {
+    name:"Creative Studio",
+    state:"working",
+    x:-3.2,z:-1.8,
+    progress:72,
+    type:"studio"
+  },
+  {
+    name:"Career Planning",
+    state:"waiting",
+    x:3.0,z:-1.8,
+    progress:48,
+    type:"office"
+  },
+  {
+    name:"Business School",
+    state:"finished",
+    x:-2.5,z:2.5,
+    progress:100,
+    type:"school"
+  },
+  {
+    name:"Idea Lab",
+    state:"idle",
+    x:2.5,z:2.6,
+    progress:26,
+    type:"lab"
+  },
+  {
+    name:"Project Hub",
+    state:"dormant",
+    x:0,z:0,
+    progress:12,
+    type:"hub"
+  }
 ];
 
 const colors = {
@@ -24,52 +54,53 @@ let renderer;
 let raycaster;
 let pointer;
 
-const residents = [];
-const labels = [];
+const residents=[];
+const labels=[];
+const effects=[];
 
-let radius = 13;
-let theta = 0.65;
-let phi = 0.92;
+let radius=13;
+let theta=.65;
+let phi=.92;
 
-let touchStartX = 0;
-let touchStartY = 0;
-let pinchDistance = 0;
-let moved = false;
+let lastX=0;
+let lastY=0;
+let moved=false;
+let pinchDistance=0;
 
 
 /* =========================
-   WORLD START
+   START
 ========================= */
 
 function startWorld(){
 
-  scene = new THREE.Scene();
+  scene=new THREE.Scene();
 
-  scene.background =
+  scene.background=
     new THREE.Color(0x05030b);
 
-  scene.fog =
+  scene.fog=
     new THREE.FogExp2(
       0x080611,
-      0.018
+      .018
     );
 
-  camera =
+  camera=
     new THREE.PerspectiveCamera(
       42,
-      innerWidth / innerHeight,
-      0.1,
+      innerWidth/innerHeight,
+      .1,
       100
     );
 
-  renderer =
+  renderer=
     new THREE.WebGLRenderer({
       antialias:true,
       powerPreference:"high-performance"
     });
 
   renderer.setPixelRatio(
-    Math.min(devicePixelRatio || 1,2)
+    Math.min(devicePixelRatio||1,2)
   );
 
   renderer.setSize(
@@ -77,25 +108,23 @@ function startWorld(){
     innerHeight
   );
 
-  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled=true;
 
-  world.innerHTML = "";
-
+  world.innerHTML="";
   world.appendChild(
     renderer.domElement
   );
 
-  raycaster =
-    new THREE.Raycaster();
-
-  pointer =
-    new THREE.Vector2();
+  raycaster=new THREE.Raycaster();
+  pointer=new THREE.Vector2();
 
   createLighting();
   createStars();
   createWater();
   createIsland();
+  createCentralPlaza();
   createPaths();
+  createStreetLights();
   createBuildings();
   createTrees();
   createResidents();
@@ -103,7 +132,7 @@ function startWorld(){
   setupControls();
   setupSheet();
 
-  window.addEventListener(
+  addEventListener(
     "resize",
     resize
   );
@@ -118,45 +147,40 @@ function startWorld(){
 
 function createLighting(){
 
-  const ambient =
+  scene.add(
     new THREE.HemisphereLight(
-      0xb8aaff,
+      0xb9adff,
       0x08050f,
       2.3
-    );
+    )
+  );
 
-  scene.add(ambient);
-
-  const moon =
+  const moon=
     new THREE.DirectionalLight(
       0xe8e2ff,
       3.2
     );
 
   moon.position.set(
-    -8,
-    14,
-    8
+    -8,14,8
   );
 
-  moon.castShadow = true;
+  moon.castShadow=true;
 
   scene.add(moon);
 
-  const centerGlow =
+  const glow=
     new THREE.PointLight(
       0x8b4dff,
       35,
       30
     );
 
-  centerGlow.position.set(
-    0,
-    4,
-    0
+  glow.position.set(
+    0,4,0
   );
 
-  scene.add(centerGlow);
+  scene.add(glow);
 }
 
 
@@ -166,48 +190,42 @@ function createLighting(){
 
 function createStars(){
 
-  const geometry =
+  const geo=
     new THREE.BufferGeometry();
 
-  const count = 1000;
-
-  const positions =
+  const positions=
     new Float32Array(
-      count * 3
+      1000*3
     );
 
-  for(let i=0;i<count;i++){
+  for(let i=0;i<1000;i++){
 
-    positions[i*3] =
-      (Math.random()-0.5)*70;
+    positions[i*3]=
+      (Math.random()-.5)*70;
 
-    positions[i*3+1] =
+    positions[i*3+1]=
       Math.random()*35+4;
 
-    positions[i*3+2] =
-      (Math.random()-0.5)*70;
+    positions[i*3+2]=
+      (Math.random()-.5)*70;
   }
 
-  geometry.setAttribute(
+  geo.setAttribute(
     "position",
     new THREE.BufferAttribute(
-      positions,
-      3
+      positions,3
     )
   );
 
-  const material =
-    new THREE.PointsMaterial({
-      color:0xffffff,
-      size:0.055,
-      transparent:true,
-      opacity:0.85
-    });
-
   scene.add(
     new THREE.Points(
-      geometry,
-      material
+      geo,
+      new THREE.PointsMaterial({
+        color:0xffffff,
+        size:.055,
+        transparent:true,
+        opacity:.85
+      })
     )
   );
 }
@@ -219,46 +237,36 @@ function createStars(){
 
 function createWater(){
 
-  const water =
+  const water=
     new THREE.Mesh(
       new THREE.CylinderGeometry(
-        14,
-        14,
-        0.3,
-        64
+        14,14,.3,64
       ),
       new THREE.MeshStandardMaterial({
         color:0x100b25,
-        roughness:0.15,
-        metalness:0.55
+        roughness:.12,
+        metalness:.6
       })
     );
 
-  water.position.y = -1.45;
+  water.position.y=-1.45;
 
   scene.add(water);
 
-
-  const ring =
+  const ring=
     new THREE.Mesh(
       new THREE.TorusGeometry(
-        11,
-        0.055,
-        10,
-        128
+        11,.055,10,128
       ),
       new THREE.MeshBasicMaterial({
         color:0x824cff,
         transparent:true,
-        opacity:0.8
+        opacity:.8
       })
     );
 
-  ring.rotation.x =
-    Math.PI / 2;
-
-  ring.position.y =
-    -1.25;
+  ring.rotation.x=Math.PI/2;
+  ring.position.y=-1.25;
 
   scene.add(ring);
 }
@@ -270,34 +278,26 @@ function createWater(){
 
 function createIsland(){
 
-  const rock =
+  const base=
     new THREE.Mesh(
       new THREE.CylinderGeometry(
-        7.5,
-        6,
-        1.6,
-        64
+        7.5,6,1.6,64
       ),
       new THREE.MeshStandardMaterial({
         color:0x171226,
-        roughness:0.92
+        roughness:.92
       })
     );
 
-  rock.position.y = -0.65;
+  base.position.y=-.65;
+  base.receiveShadow=true;
 
-  rock.receiveShadow = true;
+  scene.add(base);
 
-  scene.add(rock);
-
-
-  const grass =
+  const grass=
     new THREE.Mesh(
       new THREE.CylinderGeometry(
-        7.15,
-        5.7,
-        0.48,
-        64
+        7.15,5.7,.48,64
       ),
       new THREE.MeshStandardMaterial({
         color:0x314d40,
@@ -305,33 +305,72 @@ function createIsland(){
       })
     );
 
-  grass.position.y = 0;
-
-  grass.receiveShadow = true;
+  grass.receiveShadow=true;
 
   scene.add(grass);
 
-
-  const edge =
+  const edge=
     new THREE.Mesh(
       new THREE.TorusGeometry(
-        7.15,
-        0.05,
-        8,
-        128
+        7.15,.05,8,128
       ),
       new THREE.MeshBasicMaterial({
         color:0xb15cff
       })
     );
 
-  edge.rotation.x =
-    Math.PI / 2;
-
-  edge.position.y =
-    0.26;
+  edge.rotation.x=Math.PI/2;
+  edge.position.y=.26;
 
   scene.add(edge);
+}
+
+
+/* =========================
+   CENTRAL PLAZA
+========================= */
+
+function createCentralPlaza(){
+
+  const plaza=
+    new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        1.45,1.45,.08,32
+      ),
+      new THREE.MeshStandardMaterial({
+        color:0x453b50,
+        roughness:.7
+      })
+    );
+
+  plaza.position.y=.27;
+
+  scene.add(plaza);
+
+  const core=
+    new THREE.Mesh(
+      new THREE.SphereGeometry(
+        .25,16,12
+      ),
+      new THREE.MeshBasicMaterial({
+        color:0x9b5cff
+      })
+    );
+
+  core.position.y=.65;
+
+  scene.add(core);
+
+  const light=
+    new THREE.PointLight(
+      0x9b5cff,
+      5,
+      5
+    );
+
+  light.position.y=.7;
+
+  scene.add(light);
 }
 
 
@@ -341,34 +380,32 @@ function createIsland(){
 
 function createPaths(){
 
-  threads.forEach((data)=>{
+  threads.forEach(data=>{
 
-    const length =
+    const length=
       Math.sqrt(
-        data.x*data.x +
+        data.x*data.x+
         data.z*data.z
       );
 
-    const path =
+    const path=
       new THREE.Mesh(
         new THREE.BoxGeometry(
-          0.32,
-          0.035,
-          length
+          .32,.035,length
         ),
         new THREE.MeshStandardMaterial({
           color:0x665c70,
-          roughness:0.9
+          roughness:.9
         })
       );
 
     path.position.set(
       data.x/2,
-      0.25,
+      .25,
       data.z/2
     );
 
-    path.rotation.y =
+    path.rotation.y=
       Math.atan2(
         data.x,
         data.z
@@ -380,59 +417,135 @@ function createPaths(){
 
 
 /* =========================
+   STREET LIGHTS
+========================= */
+
+function createStreetLights(){
+
+  threads.forEach(data=>{
+
+    const steps=3;
+
+    for(let i=1;i<=steps;i++){
+
+      const amount=i/(steps+1);
+
+      const x=data.x*amount;
+      const z=data.z*amount;
+
+      const pole=
+        new THREE.Mesh(
+          new THREE.CylinderGeometry(
+            .025,.035,.55,8
+          ),
+          new THREE.MeshStandardMaterial({
+            color:0x292332,
+            metalness:.5
+          })
+        );
+
+      pole.position.set(
+        x+.22,
+        .52,
+        z-.22
+      );
+
+      scene.add(pole);
+
+      const lamp=
+        new THREE.Mesh(
+          new THREE.SphereGeometry(
+            .065,10,8
+          ),
+          new THREE.MeshBasicMaterial({
+            color:0x8f7cff
+          })
+        );
+
+      lamp.position.set(
+        x+.22,
+        .82,
+        z-.22
+      );
+
+      scene.add(lamp);
+
+      const light=
+        new THREE.PointLight(
+          0x7c65ff,
+          .7,
+          1.6
+        );
+
+      light.position.copy(
+        lamp.position
+      );
+
+      scene.add(light);
+    }
+  });
+}
+
+
+/* =========================
    BUILDINGS
 ========================= */
 
 function createBuildings(){
 
-  threads.forEach((data)=>{
+  threads.forEach(data=>{
 
-    const group =
+    const group=
       new THREE.Group();
 
-    const glow =
-      colors[data.state];
+    const glow=colors[data.state];
 
 
-    const foundation =
+    /* FOUNDATION */
+
+    const foundation=
       new THREE.Mesh(
         new THREE.CylinderGeometry(
-          1.05,
-          1.15,
-          0.2,
-          20
+          1.05,1.18,.2,20
         ),
         new THREE.MeshStandardMaterial({
           color:0x282034,
-          roughness:0.8
+          roughness:.8
         })
       );
 
-    foundation.position.y =
-      0.28;
+    foundation.position.y=.28;
 
     group.add(foundation);
 
 
-    let width = 1.3;
-    let height = 1.15;
-    let depth = 1.15;
+    let width=1.3;
+    let height=1.15;
+    let depth=1.15;
 
 
-    if(data.type === "hub"){
-      width = 1.65;
-      height = 1.4;
-      depth = 1.65;
+    /* DIFFERENT ARCHITECTURE */
+
+    if(data.type==="hub"){
+      width=1.75;
+      height=1.5;
+      depth=1.75;
     }
 
-    if(data.type === "lab"){
-      width = 1.4;
-      height = 1.35;
-      depth = 1.4;
+    if(data.type==="lab"){
+      width=1.4;
+      height=1.35;
+      depth=1.4;
+    }
+
+    if(data.type==="school"){
+      width=1.55;
+      height=1.25;
+      depth=1.4;
     }
 
 
-    const building =
+    const body=
       new THREE.Mesh(
         new THREE.BoxGeometry(
           width,
@@ -441,159 +554,168 @@ function createBuildings(){
         ),
         new THREE.MeshStandardMaterial({
           color:
-            data.type === "hub"
-              ? 0x514362
-              : 0x40384e,
-          roughness:0.48,
-          metalness:0.18
+            data.type==="hub"
+              ?0x514362
+              :0x40384e,
+          roughness:.45,
+          metalness:.2
         })
       );
 
-    building.position.y =
-      0.9;
+    body.position.y=.9;
+    body.castShadow=true;
 
-    building.castShadow = true;
+    group.add(body);
 
-    group.add(building);
 
+    /* ROOF */
 
     let roof;
 
+    if(data.type==="lab"){
 
-    if(
-      data.type === "lab" ||
-      data.type === "hub"
-    ){
-
-      roof =
+      roof=
         new THREE.Mesh(
           new THREE.ConeGeometry(
-            1.15,
-            0.5,
-            8
+            1.15,.5,8
           ),
           new THREE.MeshStandardMaterial({
-            color:0x251b35,
-            roughness:0.55
+            color:0x241a35,
+            roughness:.5
+          })
+        );
+
+    }else if(data.type==="school"){
+
+      roof=
+        new THREE.Mesh(
+          new THREE.BoxGeometry(
+            1.75,.22,1.6
+          ),
+          new THREE.MeshStandardMaterial({
+            color:0x21182f,
+            roughness:.55
+          })
+        );
+
+      roof.rotation.z=.04;
+
+    }else if(data.type==="hub"){
+
+      roof=
+        new THREE.Mesh(
+          new THREE.CylinderGeometry(
+            .95,.95,.35,8
+          ),
+          new THREE.MeshStandardMaterial({
+            color:0x241a35,
+            roughness:.5
           })
         );
 
     }else{
 
-      roof =
+      roof=
         new THREE.Mesh(
           new THREE.ConeGeometry(
-            1.05,
-            0.7,
-            4
+            1.05,.7,4
           ),
           new THREE.MeshStandardMaterial({
             color:0x21182f,
-            roughness:0.6
+            roughness:.6
           })
         );
 
-      roof.rotation.y =
-        Math.PI/4;
+      roof.rotation.y=Math.PI/4;
     }
 
-    roof.position.y =
-      data.type === "hub"
-        ? 1.85
-        : 1.8;
+    roof.position.y=
+      data.type==="hub"
+        ?1.85
+        :1.8;
 
     group.add(roof);
 
 
     /* WINDOWS */
 
-    const windowPositions = [
-      [-0.38,1.0,0.59],
-      [0.38,1.0,0.59]
+    const windowPositions=[
+      [-.4,1,.59],
+      [.4,1,.59]
     ];
 
     windowPositions.forEach(
       ([x,y,z])=>{
 
-        const windowMesh =
+        const win=
           new THREE.Mesh(
             new THREE.BoxGeometry(
-              0.27,
-              0.32,
-              0.04
+              .27,.32,.04
             ),
             new THREE.MeshBasicMaterial({
               color:glow
             })
           );
 
-        windowMesh.position.set(
-          x,
-          y,
-          z
+        win.position.set(
+          x,y,z
         );
 
-        group.add(
-          windowMesh
-        );
+        group.add(win);
       }
     );
 
 
     /* DOOR */
 
-    const door =
+    const door=
       new THREE.Mesh(
         new THREE.BoxGeometry(
-          0.25,
-          0.48,
-          0.04
+          .25,.48,.04
         ),
         new THREE.MeshBasicMaterial({
-          color:0x17111f
+          color:0x120d19
         })
       );
 
     door.position.set(
-      0,
-      0.58,
-      0.59
+      0,.58,.59
     );
 
     group.add(door);
 
 
-    /* ROOFTOP LIGHT */
+    /* BUILDING SIGN */
 
-    const lamp =
+    const sign=
       new THREE.Mesh(
-        new THREE.SphereGeometry(
-          0.1,
-          12,
-          8
+        new THREE.BoxGeometry(
+          .7,.16,.04
         ),
         new THREE.MeshBasicMaterial({
           color:glow
         })
       );
 
-    lamp.position.y =
-      2.1;
+    sign.position.set(
+      0,1.35,.62
+    );
 
-    group.add(lamp);
+    group.add(sign);
 
 
-    const buildingLight =
+    /* BUILDING LIGHT */
+
+    const buildingLight=
       new THREE.PointLight(
         glow,
-        data.state === "dormant"
-          ? 0.3
-          : 2.2,
+        data.state==="dormant"
+          ?0.25
+          :2.3,
         3
       );
 
-    buildingLight.position.y =
-      1.1;
+    buildingLight.position.y=1.15;
 
     group.add(
       buildingLight
@@ -617,74 +739,61 @@ function createBuildings(){
 
 function createTrees(){
 
-  const locations = [
+  const locations=[
     [-5.6,-3.4],
-    [-5.7,1.0],
+    [-5.7,1],
     [-4.8,4.1],
     [-1.2,5.2],
-    [2.0,5.0],
+    [2,5],
     [5.2,3.5],
-    [5.6,0.5],
-    [5.0,-3.7],
-    [2.0,-5.0],
-    [-2.2,-5.0]
+    [5.6,.5],
+    [5,-3.7],
+    [2,-5],
+    [-2.2,-5]
   ];
 
-  locations.forEach(
-    ([x,z])=>{
+  locations.forEach(([x,z])=>{
 
-      const tree =
-        new THREE.Group();
+    const tree=
+      new THREE.Group();
 
-      const trunk =
-        new THREE.Mesh(
-          new THREE.CylinderGeometry(
-            0.07,
-            0.12,
-            0.65,
-            8
-          ),
-          new THREE.MeshStandardMaterial({
-            color:0x50352c
-          })
-        );
-
-      trunk.position.y =
-        0.43;
-
-
-      const crown =
-        new THREE.Mesh(
-          new THREE.SphereGeometry(
-            0.48,
-            12,
-            10
-          ),
-          new THREE.MeshStandardMaterial({
-            color:0x416b57,
-            roughness:1
-          })
-        );
-
-      crown.position.y =
-        0.9;
-
-      crown.castShadow = true;
-
-      tree.add(
-        trunk,
-        crown
+    const trunk=
+      new THREE.Mesh(
+        new THREE.CylinderGeometry(
+          .07,.12,.65,8
+        ),
+        new THREE.MeshStandardMaterial({
+          color:0x50352c
+        })
       );
 
-      tree.position.set(
-        x,
-        0,
-        z
+    trunk.position.y=.43;
+
+    const crown=
+      new THREE.Mesh(
+        new THREE.SphereGeometry(
+          .48,12,10
+        ),
+        new THREE.MeshStandardMaterial({
+          color:0x416b57,
+          roughness:1
+        })
       );
 
-      scene.add(tree);
-    }
-  );
+    crown.position.y=.9;
+    crown.castShadow=true;
+
+    tree.add(
+      trunk,
+      crown
+    );
+
+    tree.position.set(
+      x,0,z
+    );
+
+    scene.add(tree);
+  });
 }
 
 
@@ -694,73 +803,59 @@ function createTrees(){
 
 function createResidents(){
 
-  threads.forEach((data)=>{
+  threads.forEach(data=>{
 
-    const robot =
+    const robot=
       new THREE.Group();
 
     /*
-      Put the resident beside
-      the building instead of
-      inside it.
+      Resident stands beside
+      its own building.
     */
 
     robot.position.set(
-      data.x + 0.95,
+      data.x+.95,
       0,
-      data.z + 0.65
+      data.z+.7
     );
 
-
-    const body =
+    const body=
       new THREE.Mesh(
         new THREE.SphereGeometry(
-          0.3,
-          16,
-          12
+          .3,16,12
         ),
         new THREE.MeshStandardMaterial({
           color:0xe7e2f0,
-          metalness:0.38,
-          roughness:0.27
+          metalness:.38,
+          roughness:.27
         })
       );
 
-    body.scale.y =
-      1.2;
-
-    body.position.y =
-      0.7;
-
-    body.castShadow = true;
+    body.scale.y=1.2;
+    body.position.y=.7;
+    body.castShadow=true;
 
 
-    const head =
+    const head=
       new THREE.Mesh(
         new THREE.SphereGeometry(
-          0.34,
-          16,
-          12
+          .34,16,12
         ),
         new THREE.MeshStandardMaterial({
           color:0xf5f0ff,
-          metalness:0.25,
-          roughness:0.22
+          metalness:.25,
+          roughness:.22
         })
       );
 
-    head.position.y =
-      1.3;
-
-    head.castShadow = true;
+    head.position.y=1.3;
+    head.castShadow=true;
 
 
-    const visor =
+    const visor=
       new THREE.Mesh(
         new THREE.SphereGeometry(
-          0.22,
-          16,
-          10
+          .22,16,10
         ),
         new THREE.MeshBasicMaterial({
           color:colors[data.state]
@@ -768,19 +863,15 @@ function createResidents(){
       );
 
     visor.scale.set(
-      1,
-      0.48,
-      0.3
+      1,.48,.3
     );
 
     visor.position.set(
-      0,
-      1.3,
-      0.29
+      0,1.3,.29
     );
 
 
-    const light =
+    const light=
       new THREE.PointLight(
         colors[data.state],
         3,
@@ -788,11 +879,8 @@ function createResidents(){
       );
 
     light.position.set(
-      0,
-      1.1,
-      0.2
+      0,1.1,.2
     );
-
 
     robot.add(
       body,
@@ -802,37 +890,35 @@ function createResidents(){
     );
 
 
+    /* STATE BEACON */
+
     if(
-      data.state === "working" ||
-      data.state === "waiting"
+      data.state==="working"||
+      data.state==="waiting"
     ){
 
-      const beacon =
+      const beacon=
         new THREE.Mesh(
           new THREE.SphereGeometry(
-            0.1,
-            12,
-            10
+            .1,12,10
           ),
           new THREE.MeshBasicMaterial({
             color:colors[data.state]
           })
         );
 
-      beacon.position.y =
-        1.82;
+      beacon.position.y=1.82;
 
       robot.add(beacon);
     }
 
 
-    robot.userData = {
+    robot.userData={
       ...data,
       baseX:robot.position.x,
       baseZ:robot.position.z,
       phase:Math.random()*Math.PI*2
     };
-
 
     scene.add(robot);
 
@@ -849,53 +935,45 @@ function createResidents(){
 
 function createLabel(data){
 
-  const canvas =
+  const canvas=
     document.createElement("canvas");
 
-  canvas.width = 512;
-  canvas.height = 110;
+  canvas.width=512;
+  canvas.height=110;
 
-  const ctx =
+  const ctx=
     canvas.getContext("2d");
 
-  ctx.fillStyle =
-    "rgba(12,8,22,0.9)";
+  ctx.fillStyle=
+    "rgba(12,8,22,.9)";
 
   roundRect(
     ctx,
-    15,
-    15,
-    482,
-    80,
+    15,15,
+    482,80,
     28
   );
 
   ctx.fill();
 
-  ctx.font =
+  ctx.font=
     "bold 30px sans-serif";
 
-  ctx.textAlign =
-    "center";
-
-  ctx.textBaseline =
-    "middle";
-
-  ctx.fillStyle =
-    "#ffffff";
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+  ctx.fillStyle="#ffffff";
 
   ctx.fillText(
     data.name,
-    256,
-    55
+    256,55
   );
 
-  const texture =
+  const texture=
     new THREE.CanvasTexture(
       canvas
     );
 
-  const sprite =
+  const sprite=
     new THREE.Sprite(
       new THREE.SpriteMaterial({
         map:texture,
@@ -904,9 +982,7 @@ function createLabel(data){
     );
 
   sprite.scale.set(
-    2.2,
-    0.48,
-    1
+    2.15,.46,1
   );
 
   sprite.position.set(
@@ -922,51 +998,31 @@ function createLabel(data){
 
 
 function roundRect(
-  ctx,
-  x,
-  y,
-  w,
-  h,
-  r
+  ctx,x,y,w,h,r
 ){
 
   ctx.beginPath();
 
-  ctx.moveTo(
-    x+r,
-    y
+  ctx.moveTo(x+r,y);
+
+  ctx.arcTo(
+    x+w,y,
+    x+w,y+h,r
   );
 
   ctx.arcTo(
-    x+w,
-    y,
-    x+w,
-    y+h,
-    r
+    x+w,y+h,
+    x,y+h,r
   );
 
   ctx.arcTo(
-    x+w,
-    y+h,
-    x,
-    y+h,
-    r
+    x,y+h,
+    x,y,r
   );
 
   ctx.arcTo(
-    x,
-    y+h,
-    x,
-    y,
-    r
-  );
-
-  ctx.arcTo(
-    x,
-    y,
-    x+w,
-    y,
-    r
+    x,y,
+    x+w,y,r
   );
 
   ctx.closePath();
@@ -983,42 +1039,40 @@ function setupControls(){
     "pointerdown",
     event=>{
 
-      pointer.x =
-        event.clientX /
-        innerWidth * 2 - 1;
+      pointer.x=
+        event.clientX/
+        innerWidth*2-1;
 
-      pointer.y =
-        -(event.clientY /
-        innerHeight) * 2 + 1;
+      pointer.y=
+        -(event.clientY/
+        innerHeight)*2+1;
 
       raycaster.setFromCamera(
         pointer,
         camera
       );
 
-      const hits =
+      const hits=
         raycaster.intersectObjects(
-          residents,
-          true
+          residents,true
         );
 
-      if(hits.length){
+      if(!hits.length)
+        return;
 
-        let obj =
-          hits[0].object;
+      let obj=hits[0].object;
 
-        while(
-          obj.parent &&
-          !obj.userData.name
-        ){
-          obj = obj.parent;
-        }
+      while(
+        obj.parent &&
+        !obj.userData.name
+      ){
+        obj=obj.parent;
+      }
 
-        if(obj.userData.name){
-          openSheet(
-            obj.userData
-          );
-        }
+      if(obj.userData.name){
+        openSheet(
+          obj.userData
+        );
       }
     }
   );
@@ -1028,24 +1082,20 @@ function setupControls(){
     "touchstart",
     event=>{
 
-      moved = false;
+      moved=false;
 
-      if(
-        event.touches.length === 1
-      ){
+      if(event.touches.length===1){
 
-        touchStartX =
+        lastX=
           event.touches[0].clientX;
 
-        touchStartY =
+        lastY=
           event.touches[0].clientY;
       }
 
-      if(
-        event.touches.length === 2
-      ){
+      if(event.touches.length===2){
 
-        pinchDistance =
+        pinchDistance=
           distance(
             event.touches[0],
             event.touches[1]
@@ -1061,72 +1111,59 @@ function setupControls(){
     "touchmove",
     event=>{
 
-      if(
-        event.touches.length === 1
-      ){
+      if(event.touches.length===1){
 
-        const x =
+        const x=
           event.touches[0].clientX;
 
-        const y =
+        const y=
           event.touches[0].clientY;
 
-        const dx =
-          x-touchStartX;
-
-        const dy =
-          y-touchStartY;
+        const dx=x-lastX;
+        const dy=y-lastY;
 
         if(
-          Math.abs(dx)>3 ||
+          Math.abs(dx)>3||
           Math.abs(dy)>3
         ){
-          moved = true;
+          moved=true;
         }
 
-        theta -=
-          dx * 0.008;
+        theta-=dx*.008;
+        phi+=dy*.006;
 
-        phi +=
-          dy * 0.006;
-
-        phi =
+        phi=
           Math.max(
-            0.55,
+            .55,
             Math.min(1.25,phi)
           );
 
-        touchStartX = x;
-        touchStartY = y;
+        lastX=x;
+        lastY=y;
       }
 
 
-      if(
-        event.touches.length === 2
-      ){
+      if(event.touches.length===2){
 
-        const current =
+        const current=
           distance(
             event.touches[0],
             event.touches[1]
           );
 
-        const delta =
+        const delta=
           current-pinchDistance;
 
-        radius -=
-          delta * 0.018;
+        radius-=delta*.018;
 
-        radius =
+        radius=
           Math.max(
             8,
             Math.min(18,radius)
           );
 
-        pinchDistance =
-          current;
-
-        moved = true;
+        pinchDistance=current;
+        moved=true;
       }
 
     },
@@ -1137,10 +1174,10 @@ function setupControls(){
 
 function distance(a,b){
 
-  const dx =
+  const dx=
     a.clientX-b.clientX;
 
-  const dy =
+  const dy=
     a.clientY-b.clientY;
 
   return Math.sqrt(
@@ -1155,24 +1192,22 @@ function distance(a,b){
 
 function updateCamera(){
 
-  camera.position.x =
-    radius *
-    Math.sin(phi) *
+  camera.position.x=
+    radius*
+    Math.sin(phi)*
     Math.sin(theta);
 
-  camera.position.y =
-    radius *
+  camera.position.y=
+    radius*
     Math.cos(phi);
 
-  camera.position.z =
-    radius *
-    Math.sin(phi) *
+  camera.position.z=
+    radius*
+    Math.sin(phi)*
     Math.cos(theta);
 
   camera.lookAt(
-    0,
-    0.3,
-    0
+    0,.35,0
   );
 }
 
@@ -1185,23 +1220,22 @@ function openSheet(data){
 
   document.getElementById(
     "sheetTitle"
-  ).textContent =
-    data.name;
+  ).textContent=data.name;
 
   document.getElementById(
     "sheetState"
-  ).textContent =
+  ).textContent=
     data.state.toUpperCase();
 
   document.getElementById(
     "sheetText"
-  ).textContent =
+  ).textContent=
     stateText(data.state);
 
   document.getElementById(
     "progressFill"
-  ).style.width =
-    data.progress + "%";
+  ).style.width=
+    data.progress+"%";
 
   document.getElementById(
     "sheet"
@@ -1211,7 +1245,7 @@ function openSheet(data){
 
 function stateText(state){
 
-  const text = {
+  return {
 
     working:
       "This conversation is actively working. Your resident is moving through the world.",
@@ -1227,22 +1261,21 @@ function stateText(state){
 
     dormant:
       "This conversation has been quiet for a while."
-  };
 
-  return text[state];
+  }[state];
 }
 
 
 function setupSheet(){
 
-  const close =
+  const close=
     document.getElementById(
       "closeSheet"
     );
 
   if(close){
 
-    close.onclick = ()=>{
+    close.onclick=()=>{
 
       document.getElementById(
         "sheet"
@@ -1262,95 +1295,84 @@ function animate(){
     animate
   );
 
-  const time =
+  const time=
     performance.now()/1000;
 
   updateCamera();
 
 
-  residents.forEach(
-    robot=>{
+  residents.forEach(robot=>{
 
-      const data =
-        robot.userData;
-
-
-      if(
-        data.state === "working"
-      ){
-
-        robot.position.x =
-          data.baseX +
-          Math.sin(
-            time*1.3+
-            data.phase
-          )*0.5;
-
-        robot.position.z =
-          data.baseZ +
-          Math.cos(
-            time*1.1+
-            data.phase
-          )*0.4;
-
-        robot.rotation.y +=
-          0.018;
-
-      }else{
-
-        robot.position.y =
-          Math.sin(
-            time*1.5+
-            data.phase
-          )*0.04;
-      }
+    const data=
+      robot.userData;
 
 
-      if(
-        data.state === "waiting"
-      ){
+    if(data.state==="working"){
 
-        const beacon =
-          robot.children[
-            robot.children.length-1
-          ];
+      robot.position.x=
+        data.baseX+
+        Math.sin(
+          time*1.3+
+          data.phase
+        )*.5;
 
-        if(beacon){
+      robot.position.z=
+        data.baseZ+
+        Math.cos(
+          time*1.1+
+          data.phase
+        )*.4;
 
-          beacon.scale.setScalar(
-            1 +
-            Math.sin(
-              time*5+
-              data.phase
-            )*0.4
-          );
-        }
-      }
+      robot.rotation.y+=.018;
 
+    }else{
 
-      if(
-        data.state === "finished"
-      ){
-
-        robot.rotation.z =
-          Math.sin(
-            time*0.8+
-            data.phase
-          )*0.08;
-      }
-
+      robot.position.y=
+        Math.sin(
+          time*1.5+
+          data.phase
+        )*.04;
     }
-  );
 
 
-  labels.forEach(
-    label=>{
+    if(data.state==="waiting"){
 
-      label.material.opacity =
-        0.82 +
-        Math.sin(time*1.4)*0.08;
+      const beacon=
+        robot.children[
+          robot.children.length-1
+        ];
+
+      if(beacon){
+
+        beacon.scale.setScalar(
+          1+
+          Math.sin(
+            time*5+
+            data.phase
+          )*.4
+        );
+      }
     }
-  );
+
+
+    if(data.state==="finished"){
+
+      robot.rotation.z=
+        Math.sin(
+          time*.8+
+          data.phase
+        )*.08;
+    }
+
+  });
+
+
+  labels.forEach(label=>{
+
+    label.material.opacity=
+      .82+
+      Math.sin(time*1.4)*.08;
+  });
 
 
   renderer.render(
@@ -1366,9 +1388,8 @@ function animate(){
 
 function resize(){
 
-  camera.aspect =
-    innerWidth /
-    innerHeight;
+  camera.aspect=
+    innerWidth/innerHeight;
 
   camera.updateProjectionMatrix();
 
@@ -1380,7 +1401,7 @@ function resize(){
 
 
 /* =========================
-   GO
+   LAUNCH
 ========================= */
 
 startWorld();
