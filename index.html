@@ -2,91 +2,37 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport"
-        content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <meta name="theme-color" content="#05030b">
   <title>ChatGPT World</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
-
   <main id="world"></main>
-
   <div class="hud">
-
     <header class="top">
-      <div class="brand">
-        <div class="logo">✦</div>
-        <div>
-          <div class="title">ChatGPT World</div>
-          <div class="subtitle">Your conversations. Visualized. Alive.</div>
-        </div>
-      </div>
-
+      <div class="brand"><div class="logo">✦</div><div><div class="title">ChatGPT World</div><div class="subtitle">Your conversations. Visualized. Alive.</div></div></div>
       <div class="status">● WORLD ONLINE</div>
     </header>
-
-    <div class="stats">
-      <div class="pill"><b>5</b> worlds</div>
-      <div class="pill"><b>2</b> active</div>
-    </div>
-
-    <div class="legend">
-      <span class="dot"></span>
-      Live world
-    </div>
-
-    <div class="hint">
-      Drag to explore · Tap a resident
-    </div>
-
+    <div class="stats"><div class="pill"><b>5</b> worlds</div><div class="pill"><b>2</b> active</div></div>
+    <div class="legend"><span class="dot"></span> Live world</div>
+    <div class="hint">Drag to explore · Tap a resident</div>
     <section class="sheet" id="sheet">
-      <div class="handle"></div>
-
-      <button class="close" id="closeSheet">×</button>
-
-      <div class="sheetrow">
-        <h2 id="sheetTitle">Conversation</h2>
-        <div class="badge" id="sheetState">IDLE</div>
-      </div>
-
-      <p id="sheetText">
-        Conversation details will appear here.
-      </p>
-
-      <div class="progress">
-        <i id="progressFill"></i>
-      </div>
+      <div class="handle"></div><button class="close" id="closeSheet">×</button>
+      <div class="sheetrow"><h2 id="sheetTitle">Conversation</h2><div class="badge" id="sheetState">IDLE</div></div>
+      <p id="sheetText">Conversation details will appear here.</p>
+      <div class="progress"><i id="progressFill"></i></div>
     </section>
-
     <nav class="nav">
-      <button class="active">
-        <span>⌂</span>
-        World
-      </button>
-
-      <button>
-        <span>⌕</span>
-        Search
-      </button>
-
-      <button>
-        <span>✦</span>
-        Ideas
-      </button>
-
-      <button>
-        <span>☰</span>
-        More
-      </button>
+      <button class="active"><span>⌂</span>World</button>
+      <button><span>⌕</span>Search</button>
+      <button><span>✦</span>Ideas</button>
+      <button><span>☰</span>More</button>
     </nav>
-
   </div>
-
- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.min.js"></script>
-<script src="app.js"></script>
-<script src="rts-ui.js"></script>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.min.js"></script>
+  <script src="app.js"></script>
+  <script src="rts-ui.js"></script>
+  <script src="rts-game.js"></script>
 </body>
 </html>
