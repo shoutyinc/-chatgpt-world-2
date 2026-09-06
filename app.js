@@ -66,7 +66,6 @@ fireflyLights();
 residents();
 
 controls();
-sheet();
 
 addEventListener("resize",resize);
 
