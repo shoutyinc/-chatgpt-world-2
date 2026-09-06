@@ -1,162 +1,122 @@
-/* ChatGPT World — Visual Overhaul v2
- * Corrects the visual hierarchy: ChatGPT is the permanent capital;
- * every other building represents an individual conversation and grows with it.
+/* ChatGPT World — Premium Isometric World
+ * ChatGPT is the fixed capital. Every other building is a conversation.
+ * Conversation buildings visibly grow as their conversations grow.
  */
 (() => {
-  const wait = (fn, tries = 0) => {
-    if (typeof THREE !== 'undefined' && typeof scene !== 'undefined' && scene && typeof camera !== 'undefined' && camera) return fn();
-    if (tries < 150) setTimeout(() => wait(fn, tries + 1), 100);
+  const wait=(fn,n=0)=>{
+    if(typeof THREE!=='undefined'&&typeof scene!=='undefined'&&scene&&typeof camera!=='undefined'&&camera&&typeof renderer!=='undefined') return fn();
+    if(n<150)setTimeout(()=>wait(fn,n+1),100);
   };
+  const M=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:o.r??.82,metalness:o.m??0,emissive:o.e??0,emissiveIntensity:o.i??.2});
+  const C={grass:0x527a4c,grass2:0x71965a,dirt:0x9b7550,water:0x145b70,water2:0x1e7890,rock:0x6f706b,wood:0x70472d,roof:0x274858,roof2:0x3a5d69,gold:0xffcf72,teal:0x18d8d0,cyan:0x72f7ff,wall:0x74523d,wall2:0x806047,blue:0x2d6fc0};
+  const add=(g,o,x=0,y=0,z=0)=>{o.position.set(x,y,z);g.add(o);return o;};
+  const box=(w,h,d,m)=>new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);
 
-  const C = {
-    teal: 0x12b8ad,
-    cyan: 0x6df7ff,
-    blue: 0x2367b1,
-    gold: 0xf0b35b,
-    wood: 0x6a432b,
-    roof: 0x203c49,
-    wall: 0x76553f,
-    stone: 0x77736b,
-    grass: 0x365c39,
-    path: 0x9c8667
-  };
-
-  const M = (color, emissive = 0, roughness = .75, metalness = 0) =>
-    new THREE.MeshStandardMaterial({ color, roughness, metalness, emissive, emissiveIntensity: emissive ? .65 : 0 });
-
-  const add = (g, mesh, x = 0, y = 0, z = 0) => { mesh.position.set(x, y, z); g.add(mesh); return mesh; };
-
-  function chatHouse(thread) {
-    const p = Math.max(0, Math.min(100, Number(thread.progress) || 0));
-    const level = Math.max(1, Math.min(5, 1 + Math.floor(p / 23)));
-    const s = .78 + level * .08;
-    const g = new THREE.Group();
-    const w = 1.85 * s;
-    const h = 1.55 * s;
-
-    add(g, new THREE.Mesh(new THREE.BoxGeometry(w, h, w), M(C.wall)), 0, .95 + h / 2, 0);
-    add(g, new THREE.Mesh(new THREE.ConeGeometry(w * .82, .9 * s, 4), M(C.roof, 0x10252c)), 0, 2.08 + h * .38, 0).rotation.y = Math.PI / 4;
-    add(g, new THREE.Mesh(new THREE.BoxGeometry(w * .58, .13, .58), M(C.gold)), 0, .76, w * .55);
-    add(g, new THREE.Mesh(new THREE.BoxGeometry(.48 * s, .85 * s, .10), M(0x2b1c15)), 0, .82, w * .51);
-
-    [[-.32, w*.51],[.32, w*.51],[-.32, -w*.51],[.32, -w*.51]].forEach(([x,z], i) => {
-      const win = new THREE.Mesh(new THREE.BoxGeometry(.26*s,.34*s,.06), M(C.gold,C.gold));
-      win.position.set(x,1.48+h*.25,z); if (z < 0) win.rotation.y = Math.PI; g.add(win);
-    });
-
-    const chimney = new THREE.Mesh(new THREE.BoxGeometry(.22*s,.58*s,.22*s), M(0x4c4640));
-    chimney.position.set(w*.28,2.15*s,-w*.2); g.add(chimney);
-
-    // Visible construction stages make conversation growth tangible.
-    if (p < 100) {
-      const scaffold = M(0x936b45);
-      [-1,1].forEach(x => [-1,1].forEach(z => {
-        const post = new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,2.4*s,6), scaffold);
-        post.position.set(x*w*.62,1.45,z*w*.62); g.add(post);
-      }));
-      const progress = new THREE.Mesh(new THREE.BoxGeometry(w*.9,.045,.045), M(C.teal,C.teal));
-      progress.position.set(0,2.45*s,w*.61); g.add(progress);
-    }
-
-    // Chat-specific accent: every conversation gets its own banner.
-    const banner = new THREE.Mesh(new THREE.PlaneGeometry(.42*s,.30*s), M(C.blue, C.blue));
-    banner.position.set(-w*.66,1.62*s,w*.18); banner.rotation.y=Math.PI/2; g.add(banner);
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(.022,.022,1.1*s,8),M(C.wood));
-    pole.position.set(-w*.66,1.45*s,w*.18); g.add(pole);
-
-    g.userData.chatLevel = level;
-    g.userData.chatProgress = p;
-    return g;
+  function tree(g,x,z,s=1){
+    add(g,new THREE.Mesh(new THREE.CylinderGeometry(.09*s,.15*s,1.2*s,7),M(C.wood)),x,.62*s,z);
+    add(g,new THREE.Mesh(new THREE.SphereGeometry(.46*s,10,8),M(0x3d7548)),x,1.38*s,z);
+    add(g,new THREE.Mesh(new THREE.SphereGeometry(.34*s,9,7),M(0x588a50)),x+.22*s,1.62*s,z+.08*s);
+  }
+  function lantern(x,z){
+    const g=new THREE.Group(); add(g,new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,.78,7),M(C.wood)),0,1.35,0); add(g,new THREE.Mesh(new THREE.SphereGeometry(.12,10,8),M(C.gold,{e:C.gold,i:2})),0,1.78,0); g.position.set(x,0,z); scene.add(g);
   }
 
-  function chatCapital() {
-    const g = new THREE.Group();
-    const base = M(0x31545d), trim = M(C.teal,C.teal), roof = M(0x163e48,0x0c5b64);
-    add(g,new THREE.Mesh(new THREE.CylinderGeometry(2.55,2.9,.55,32),M(0x4a5c5e)),0,1.08,0);
-    add(g,new THREE.Mesh(new THREE.BoxGeometry(3.25,2.55,3.25),base),0,2.35,0);
-    add(g,new THREE.Mesh(new THREE.ConeGeometry(2.65,1.55,6),roof),0,4.35,0);
-    add(g,new THREE.Mesh(new THREE.ConeGeometry(.82,1.05,6),trim),0,5.55,0);
-    add(g,new THREE.Mesh(new THREE.SphereGeometry(.38,20,16),M(C.cyan,C.cyan,0.3,0.2)),0,6.2,0);
-    add(g,new THREE.Mesh(new THREE.TorusGeometry(.68,.07,10,48),M(C.cyan,C.cyan)),0,6.2,0).rotation.x=Math.PI/2;
-
-    const door=add(g,new THREE.Mesh(new THREE.BoxGeometry(.62,1.05,.10),M(0x241712)),0,1.45,1.66);
-    add(g,new THREE.Mesh(new THREE.BoxGeometry(.23,.30,.06),M(C.gold,C.gold)),0,2.55,1.66);
-    [-1,1].forEach(x=>{
-      const flag=add(g,new THREE.Mesh(new THREE.PlaneGeometry(.48,.34),M(C.blue,C.blue)),x*2.0,3.15,.1); flag.rotation.y=Math.PI/2;
-      add(g,new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,1.35,8),M(C.wood)),x*2.0,3.0,.1);
-    });
-    for(let i=0;i<4;i++){
-      const w=add(g,new THREE.Mesh(new THREE.BoxGeometry(.34,.48,.07),M(C.gold,C.gold)),i<2?-1.05:1.05,2.65,(i%2===0?1.66:-1.66));
-      if(i%2)w.rotation.y=Math.PI;
-    }
-    g.userData.chatCapital=true;
-    return g;
-  }
-
-  function paverPath(x1,z1,x2,z2,width=.65){
-    const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz);
-    const g=new THREE.Mesh(new THREE.BoxGeometry(width,.08,len),M(C.path,.0,.95));
-    g.position.set((x1+x2)/2,1.04,(z1+z2)/2); g.rotation.y=Math.atan2(dx,dz); scene.add(g);
-  }
-
-  function addLantern(x,z){
+  function house(t){
+    const p=Math.max(0,Math.min(100,Number(t.progress)||0));
+    const level=Math.min(5,1+Math.floor(p/21));
+    const s=.86+level*.19,w=1.85*s,h=1.45*s;
     const g=new THREE.Group();
-    add(g,new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,.75,8),M(C.wood)),0,1.35,0);
-    add(g,new THREE.Mesh(new THREE.SphereGeometry(.12,10,8),M(C.gold,C.gold)),0,1.78,0);
-    g.position.set(x,0,z); scene.add(g);
+    g.userData.chatLevel=level;g.userData.chatProgress=p;g.userData.chatBuilding=true;
+    const wall=M(level>=4?C.wall2:C.wall), roof=M(level>=4?C.roof2:C.roof,{e:0x0b2027,i:.25});
+    add(g,box(w,h,w,wall),0,.92+h/2,0);
+    const roofMesh=add(g,new THREE.Mesh(new THREE.ConeGeometry(w*.84,.95*s,4),roof),0,2.02+h*.40,0);roofMesh.rotation.y=Math.PI/4;
+    add(g,box(w*.58,.13,.64,M(C.gold)),0,.76,w*.55);
+    add(g,box(.50*s,.90*s,.11,M(0x2c1d17)),0,.84,w*.51);
+    [[-.31,w*.51],[.31,w*.51],[-.31,-w*.51],[.31,-w*.51]].forEach(([x,z])=>add(g,box(.27*s,.36*s,.07,M(C.gold,{e:C.gold,i:1.1})),x,1.55+h*.22,z));
+    add(g,box(.23*s,.58*s,.23*s,M(0x514b45)),w*.28,2.15*s,-w*.22);
+    // Each growing chat gets visible construction scaffolding.
+    if(p<100){
+      const sm=M(0xb88b57);
+      [-1,1].forEach(x=>[-1,1].forEach(z=>add(g,new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,2.45*s,6),sm),x*w*.64,1.40,z*w*.64)));
+      add(g,box(w*1.42,.06,.06,sm),0,2.22*s,0).rotation.z=.13;
+      add(g,box(w*.72,.05,.05,M(C.teal,{e:C.teal,i:1.5})),0,2.40*s,w*.54);
+    }
+    const flag=add(g,new THREE.Mesh(new THREE.PlaneGeometry(.42*s,.30*s),M(level>=4?C.gold:C.blue,{e:level>=4?C.gold:C.blue,i:.55})),-w*.67,1.65*s,w*.16);flag.rotation.y=Math.PI/2;
+    add(g,new THREE.Mesh(new THREE.CylinderGeometry(.022,.022,1.12*s,7),M(C.wood)),-w*.67,1.45*s,w*.16);
+    // Larger conversations gain a side wing and tower rather than only scaling.
+    if(level>=3){
+      add(g,box(w*.48,h*.70,w*.60,wall),w*.66,.82+h*.35,0);
+      const r=add(g,new THREE.Mesh(new THREE.ConeGeometry(w*.42,.60*s,4),roof),w*.66,1.75+h*.32,0);r.rotation.y=Math.PI/4;
+    }
+    if(level>=5){
+      add(g,box(w*.40,h*1.1,w*.40,wall),-w*.55,1.08+h*.48,0);
+      const r=add(g,new THREE.Mesh(new THREE.ConeGeometry(w*.31,.72*s,4),M(C.gold)), -w*.55,2.55+h*.58,0);r.rotation.y=Math.PI/4;
+    }
+    return g;
   }
 
-  function addFoliage(){
-    for(let i=0;i<36;i++){
-      const a=(i/36)*Math.PI*2, r=7.5+(i%5)*.9;
-      const g=new THREE.Group();
-      add(g,new THREE.Mesh(new THREE.CylinderGeometry(.07,.10,.75,7),M(C.wood)),0,.95,0);
-      add(g,new THREE.Mesh(new THREE.SphereGeometry(.48+(i%3)*.08,10,8),M(0x2f6842)),0,1.55,0);
-      g.position.set(Math.cos(a)*r,0,Math.sin(a)*r); scene.add(g);
-    }
+  function capital(){
+    const g=new THREE.Group();g.userData.chatCapital=true;
+    add(g,new THREE.Mesh(new THREE.CylinderGeometry(2.8,3.2,.55,40),M(0x4b625f)),0,1.12,0);
+    add(g,box(3.45,2.55,3.45,M(0x31545e)),0,2.50,0);
+    const roof=add(g,new THREE.Mesh(new THREE.ConeGeometry(2.85,1.55,6),M(0x174652,{e:0x083943,i:.4})),0,4.45,0);roof.rotation.y=Math.PI/6;
+    add(g,new THREE.Mesh(new THREE.ConeGeometry(.78,1.05,6),M(C.teal,{e:C.teal,i:1.5})),0,5.58,0);
+    add(g,new THREE.Mesh(new THREE.SphereGeometry(.36,24,16),M(C.cyan,{e:C.cyan,i:2.3,m:.2})),0,6.18,0);
+    const ring=add(g,new THREE.Mesh(new THREE.TorusGeometry(.68,.075,10,48),M(C.cyan,{e:C.cyan,i:2.2})),0,6.18,0);ring.rotation.x=Math.PI/2;
+    add(g,box(.66,1.08,.11,M(0x261813)),0,1.45,1.77);
+    [[-1.15,1.67],[1.15,1.67],[-1.15,-1.67],[1.15,-1.67]].forEach(([x,z])=>add(g,box(.34,.50,.08,M(C.gold,{e:C.gold,i:1})),x,2.62,z));
+    [-1,1].forEach(x=>{const f=add(g,new THREE.Mesh(new THREE.PlaneGeometry(.48,.34),M(C.blue,{e:C.blue,i:.6})),x*2.02,3.18,.1);f.rotation.y=Math.PI/2;add(g,new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,1.4,8),M(C.wood)),x*2.02,3.0,.1);});
+    return g;
+  }
+
+  function terrain(){
+    // Replace the flat presentation with a broad layered plateau and water surround.
+    const water=new THREE.Mesh(new THREE.CylinderGeometry(20.5,22,.65,72),M(0x0b3449,{r:.3,m:.2}));water.position.y=-1.05;scene.add(water);
+    const land=new THREE.Mesh(new THREE.CylinderGeometry(15.0,15.5,1.05,72),M(C.grass,{r:1}));land.position.y=.92;scene.add(land);
+    const meadow=new THREE.Mesh(new THREE.CylinderGeometry(14.55,14.55,.12,72),M(C.grass2,{r:1}));meadow.position.y=1.48;scene.add(meadow);
+    const shore=new THREE.Mesh(new THREE.TorusGeometry(14.7,.38,8,100),M(0x395b48,{r:1}));shore.rotation.x=Math.PI/2;shore.position.y=1.50;scene.add(shore);
+    // Main roads radiate from the capital and branch to conversations.
+    const road=M(C.dirt,{r:1});
+    (typeof threads!=='undefined'?threads:[]).filter(t=>t.type!=='hub').forEach(t=>{
+      const dx=t.x,dz=t.z,len=Math.hypot(dx,dz);const p=box(.78,.07,len,road);p.position.set(dx/2,1.59,dz/2);p.rotation.y=Math.atan2(dx,dz);scene.add(p);
+    });
+    const plaza=new THREE.Mesh(new THREE.CylinderGeometry(3.45,3.45,.16,48),M(0x9d896d,{r:.9}));plaza.position.y=1.63;scene.add(plaza);
+    const trees=[[-11,-7,1.2],[-9,-9,.9],[-5,-9,1.15],[-1,-10,.95],[4,-9,1.1],[9,-8,1.2],[11,-5,.95],[11,0,1.1],[10,5,1.2],[7,9,1.0],[2,10,1.15],[-3,9,.9],[-7,9,1.15],[-10,5,1.0],[-11,1,.9],[-9,-2,1.05]];
+    trees.forEach(([x,z,s])=>{const g=new THREE.Group();tree(g,0,0,s);g.position.set(x,0,z);scene.add(g);});
+    // Rocky mountain ring gives depth when zoomed out.
+    for(let i=0;i<12;i++){const a=i*Math.PI*2/12,r=13.4+(i%2)*.7,h=2.8+(i%4)*.65;const m=new THREE.Mesh(new THREE.ConeGeometry(1.2+(i%3)*.35,h,7),M(i%2?0x596660:0x4d5b58,{r:1}));m.position.set(Math.cos(a)*r,1.55+h/2,Math.sin(a)*r);scene.add(m);}
+    [[-4,-1],[4,-1],[-4,1.7],[4,1.7],[-1.8,-3.3],[1.8,-3.3]].forEach(p=>lantern(...p));
+  }
+
+  function resources(){
+    scene.traverse(o=>{
+      if(!o.isGroup||!o.userData?.rtsNode)return;
+      const type=o.userData.rtsNode.type;o.clear();
+      if(type==='wood'){
+        for(let i=0;i<5;i++){const g=new THREE.Group();tree(g,0,0,1-(i%2)*.12);g.position.set((i-2)*.38,0,(i%2-.5)*.45);o.add(g);}
+      } else if(type==='stone'){
+        for(let i=0;i<8;i++){const r=new THREE.Mesh(new THREE.DodecahedronGeometry(.30+(i%3)*.08),M(C.rock,{r:1}));r.position.set((i-3.5)*.28,.45,(i%2-.5)*.48);o.add(r);}
+      } else {
+        o.add(box(1.55,.08,1.55,M(0x68492f,{r:1})),0,.05,0);
+        for(let i=0;i<12;i++){const p=new THREE.Mesh(new THREE.ConeGeometry(.07,.34,5),M(0x6ca44c));p.position.set(-.55+(i%4)*.36,.27,-.55+Math.floor(i/4)*.5);o.add(p);}
+      }
+    });
   }
 
   function rebuild(){
-    if (typeof threads === 'undefined') return;
-
-    // The old Project Hub is a normal conversation now, not the capital.
-    scene.traverse(obj=>{
-      if(obj.userData?.threadIndex===4 && obj.isGroup){
-        obj.position.set(0,-5.0);
-      }
-    });
-
-    // Rebuild every chat house as a proper conversation building.
-    scene.traverse(obj=>{
-      if(obj.userData?.threadIndex===undefined || !obj.isGroup) return;
-      const thread=threads[obj.userData.threadIndex];
-      if(!thread) return;
-      const pos=obj.position.clone();
-      obj.clear();
-      const h=chatHouse(thread);
-      h.children.forEach(c=>obj.add(c));
-      obj.position.copy(pos);
-      obj.userData.chatBuilding=true;
-    });
-
-    // Hide the old RTS Town Center mesh; the permanent ChatGPT capital replaces it visually.
-    scene.traverse(obj=>{
-      if(obj.userData?.rtsBuilding?.type==='towncenter') obj.visible=false;
-    });
-
-    const capital=chatCapital(); capital.position.set(0,0,0); scene.add(capital);
-
-    const points=threads.filter(t=>t.type!=='hub');
-    points.forEach(t=>paverPath(0,0,t.x,t.z,.72));
-    paverPath(0,0,0,-5,.72);
-    [[-3.8,-1.0],[3.8,-1.0],[-3.8,1.4],[3.8,1.4],[-1.8,-3.2],[1.8,-3.2]].forEach(p=>addLantern(...p));
-    addFoliage();
-
-    // Reframe the world so the settlement reads as a town instead of a close-up model.
-    if(typeof cameraRadius!=='undefined') cameraRadius=29;
-    if(typeof cameraPhi!=='undefined') cameraPhi=1.02;
-    if(typeof updateCamera==='function') updateCamera();
+    if(typeof threads==='undefined')return;
+    terrain();
+    const groups=[];scene.traverse(o=>{if(o.isGroup&&o.userData?.threadIndex!==undefined)groups.push(o);});
+    groups.forEach(o=>{const t=threads[o.userData.threadIndex];if(!t)return;const pos=o.position.clone();o.clear();const h=house(t);h.children.forEach(c=>o.add(c));o.position.copy(pos);o.userData.chatBuilding=true;o.userData.chatLevel=h.userData.chatLevel;o.userData.chatProgress=h.userData.chatProgress;});
+    scene.traverse(o=>{if(o.userData?.rtsBuilding?.type==='towncenter')o.visible=false;});
+    const cap=capital();cap.position.set(0,0,0);scene.add(cap);
+    resources();
+    // Wide default view: show the entire settlement instead of a close-up.
+    cameraRadius=42;cameraPhi=1.03;updateCamera();
+    let pinch=null;
+    renderer.domElement.addEventListener('wheel',e=>{cameraRadius+=e.deltaY*.05;cameraRadius=Math.max(22,Math.min(62,cameraRadius));updateCamera();},{passive:true});
+    renderer.domElement.addEventListener('touchmove',e=>{if(e.touches.length!==2){pinch=null;return;}const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY,d=Math.hypot(dx,dy);if(pinch!==null){cameraRadius-=(d-pinch)*.065;cameraRadius=Math.max(22,Math.min(62,cameraRadius));updateCamera();}pinch=d;},{passive:true});
+    renderer.domElement.addEventListener('touchend',()=>pinch=null,{passive:true});
   }
-
   wait(rebuild);
 })();
