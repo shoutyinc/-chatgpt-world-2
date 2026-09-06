@@ -1,4 +1,4 @@
-const threads = [
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";const threads = [
   {name:"Creative Studio", state:"working", x:-3, z:-1, progress:72, icon:"✦"},
   {name:"Career Planning", state:"waiting", x:2, z:-2, progress:48, icon:"◈"},
   {name:"Business School", state:"finished", x:-1, z:2, progress:100, icon:"◆"},
@@ -726,38 +726,4 @@ if(closeButton){
 
 /* ---------- LOAD THREE.JS ---------- */
 
-const three =
-  document.createElement("script");
-
-three.src =
-  "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.min.js";
-
-three.onload = ()=>{
-  startWorld();
-};
-
-three.onerror = ()=>{
-
-  world.innerHTML = `
-    <div style="
-      position:absolute;
-      inset:0;
-      display:grid;
-      place-items:center;
-      padding:30px;
-      text-align:center;
-      color:white;
-      font-family:-apple-system,BlinkMacSystemFont,sans-serif;
-    ">
-      <div>
-        <div style="font-size:42px">✦</div>
-        <h2>World engine unavailable</h2>
-        <p style="color:#aaa">
-          Please refresh the page and try again.
-        </p>
-      </div>
-    </div>
-  `;
-};
-
-document.head.appendChild(three);
+startWorld();
