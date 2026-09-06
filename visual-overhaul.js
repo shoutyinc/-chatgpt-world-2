@@ -1,5 +1,6 @@
-/* ChatGPT World — Visual Overhaul v1
- * Makes the world read like a living conversation-driven RTS.
+/* ChatGPT World — Visual Overhaul v2
+ * A real isometric RTS presentation: broader map, richer terrain,
+ * readable conversation buildings, fixed ChatGPT HQ, and wide camera.
  */
 (() => {
   const wait = (fn, tries = 0) => {
@@ -7,71 +8,176 @@
     if (tries < 120) setTimeout(() => wait(fn, tries + 1), 100);
   };
 
-  const colors = { teal: 0x10a7a0, cyan: 0x67f5ff, wood: 0x6e4329, stone: 0x756f6b, roof: 0x203b48, warm: 0xffc86b };
-  const mat = (color, opts = {}) => new THREE.MeshStandardMaterial({ color, roughness: opts.roughness ?? .72, metalness: opts.metalness ?? 0, emissive: opts.emissive ?? 0, emissiveIntensity: opts.emissiveIntensity ?? .25 });
-  const box = (w, h, d, material, y = 0) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material); m.position.y = y; return m; };
+  const C = {
+    grass: 0x4d7448, grass2: 0x638b52, dirt: 0x8b6748,
+    water: 0x145b72, deepWater: 0x0a344b, stone: 0x6e6b64,
+    wood: 0x70462d, roof: 0x294654, roof2: 0x3d5662,
+    warm: 0xffd27a, teal: 0x14d8cf, cyan: 0x75f7ff,
+    gold: 0xd8a84e, white: 0xf4f1e8, dark: 0x17242a
+  };
+  const material = (color, opts = {}) => new THREE.MeshStandardMaterial({
+    color, roughness: opts.roughness ?? .78, metalness: opts.metalness ?? 0,
+    emissive: opts.emissive ?? 0, emissiveIntensity: opts.emissiveIntensity ?? .15
+  });
+  const meshBox = (w,h,d,m,y=0) => { const x=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); x.position.y=y; return x; };
 
-  function addWindow(g, x, y, z, rotY = 0) {
-    const frame = box(.34, .46, .08, mat(0x30241b), y); frame.position.x = x; frame.position.z = z; frame.rotation.y = rotY;
-    const glow = box(.20, .30, .09, mat(colors.warm, { emissive: colors.warm, emissiveIntensity: 1.5 }), y); glow.position.x = x; glow.position.z = z + .01; glow.rotation.y = rotY; g.add(frame, glow);
+  function addWindow(g,x,y,z,rot=0) {
+    const frame=meshBox(.42,.52,.09,material(0x241d19),y); frame.position.set(x,0,z); frame.rotation.y=rot;
+    const glow=meshBox(.26,.34,.10,material(C.warm,{emissive:C.warm,emissiveIntensity:1.8}),y); glow.position.set(x,0,z+.02); glow.rotation.y=rot;
+    g.add(frame,glow);
   }
-  function addDoor(g, z, scale = 1) { const d = box(.52 * scale, .85 * scale, .10 * scale, mat(0x2b1b16), .82 * scale); d.position.z = z; g.add(d); }
-  function addChimney(g, x, z, scale = 1) { const c = box(.28 * scale, .65 * scale, .28 * scale, mat(0x4a4542), 2.05 * scale); c.position.x = x; c.position.z = z; g.add(c); const smoke = new THREE.Mesh(new THREE.SphereGeometry(.16 * scale, 8, 8), mat(0xc8c8c8, { emissive: 0x333333 })); smoke.position.set(x, 2.55 * scale, z); g.add(smoke); }
-  function addBanner(g, x, z, color = colors.teal, scale = 1) { const pole = new THREE.Mesh(new THREE.CylinderGeometry(.025 * scale, .025 * scale, 1.05 * scale, 8), mat(0x3d2b20)); pole.position.set(x, 1.5 * scale, z); const flag = new THREE.Mesh(new THREE.PlaneGeometry(.42 * scale, .28 * scale), mat(color, { emissive: color, emissiveIntensity: .5 })); flag.position.set(x + .18 * scale, 1.72 * scale, z); flag.rotation.y = Math.PI / 2; g.add(pole, flag); }
+  function addDoor(g,z,w=.55) { const d=meshBox(w,.95,.12,material(0x2c211d),.82); d.position.z=z; g.add(d); }
+  function addChimney(g,x,z,s) { const c=meshBox(.28*s,.62*s,.28*s,material(0x57504a),2.2*s); c.position.x=x; c.position.z=z; g.add(c); }
+  function addBanner(g,x,z,color,s) {
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(.028*s,.028*s,1.35*s,7),material(0x493526)); pole.position.set(x,1.55*s,z);
+    const flag=new THREE.Mesh(new THREE.PlaneGeometry(.48*s,.34*s),material(color,{emissive:color,emissiveIntensity:.45})); flag.position.set(x+.20*s,1.82*s,z); flag.rotation.y=Math.PI/2; g.add(pole,flag);
+  }
 
-  function makeHouse(thread, isMain = false) {
-    const g = new THREE.Group();
-    const p = Math.max(0, Math.min(100, thread.progress || 0));
-    const level = isMain ? 1 + Math.floor(p / 25) : 1 + Math.floor(p / 22);
-    const s = isMain ? 1.15 + level * .08 : .82 + level * .075;
-    const w = 2.0 * s, h = 1.65 * s;
-    const wall = mat(isMain ? 0x31515a : 0x6a5140), trim = mat(isMain ? colors.teal : 0x9d7651), roof = mat(isMain ? 0x173d46 : colors.roof);
-    g.add(box(w, h, w, wall, .95 + h / 2));
-    const roofMesh = new THREE.Mesh(new THREE.ConeGeometry(w * .82, .92 * s, 4), roof); roofMesh.position.y = 2.05 + h * .45; roofMesh.rotation.y = Math.PI / 4; g.add(roofMesh);
-    const porch = box(w * .58, .16 * s, .62 * s, trim, .72); porch.position.z = w * .54; g.add(porch);
-    addDoor(g, w * .54, s); addWindow(g, -w*.30, 1.25 + h*.35, w*.51); addWindow(g, w*.30, 1.25 + h*.35, w*.51); addWindow(g, -w*.51, 1.25 + h*.35, 0, Math.PI/2); addChimney(g, w*.28, -w*.22, s); addBanner(g, -w*.62, w*.18, isMain ? colors.teal : trim, s); addBanner(g, w*.62, w*.18, isMain ? colors.teal : trim, s);
-    if (!isMain && p < 100) {
-      const scaffold = mat(0x8f6a45);
-      [[-w*.62,-w*.58],[w*.62,-w*.58],[-w*.62,w*.58],[w*.62,w*.58]].forEach(([x,z]) => { const post = new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,2.5*s,6), scaffold); post.position.set(x,1.35,z); g.add(post); });
-      const beam = box(w*1.45,.06,.06,scaffold,2.25*s); beam.rotation.z=.18; g.add(beam);
+  function makeChatHouse(thread) {
+    const p=Math.max(0,Math.min(100,Number(thread.progress)||0));
+    const level=Math.min(5,1+Math.floor(p/20));
+    const s=.82+level*.18;
+    const w=1.8*s, h=1.35*s;
+    const g=new THREE.Group();
+    g.userData.chatBuilding=true; g.userData.chatLevel=level; g.userData.chatProgress=p;
+
+    const wallColor=level>=4?0x74553e:level>=3?0x694d3b:0x5b473b;
+    g.add(meshBox(w,h,w,material(wallColor),.95+h/2));
+
+    const trim=material(level>=5?C.gold:0xb58b61);
+    const roofMat=material(level>=4?C.roof2:C.roof);
+    const roof=new THREE.Mesh(new THREE.ConeGeometry(w*.82,.95*s,4),roofMat);
+    roof.position.y=2.03+h*.46; roof.rotation.y=Math.PI/4; g.add(roof);
+
+    // Level-based wings make a busy conversation visibly become a larger building.
+    if(level>=3){
+      const wing=meshBox(w*.48,h*.72,w*.62,material(wallColor),.82+h*.36); wing.position.x=w*.66; g.add(wing);
+      const wingRoof=new THREE.Mesh(new THREE.ConeGeometry(w*.43,.62*s,4),roofMat); wingRoof.position.set(w*.66,1.72+h*.36,0); wingRoof.rotation.y=Math.PI/4; g.add(wingRoof);
     }
-    if (isMain) {
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(.72,.07,10,48), mat(colors.cyan,{emissive:colors.cyan,emissiveIntensity:2})); ring.rotation.x=Math.PI/2; ring.position.y=3.65; g.add(ring);
-      const orb = new THREE.Mesh(new THREE.SphereGeometry(.28,20,14), mat(colors.cyan,{emissive:colors.cyan,emissiveIntensity:2})); orb.position.y=3.65; g.add(orb);
+    if(level>=5){
+      const tower=meshBox(w*.42,h*1.15,w*.42,material(wallColor),1.1+h*.52); tower.position.x=-w*.55; g.add(tower);
+      const towerRoof=new THREE.Mesh(new THREE.ConeGeometry(w*.32,.75*s,4),trim); towerRoof.position.set(-w*.55,2.35+h*.62,0); towerRoof.rotation.y=Math.PI/4; g.add(towerRoof);
     }
-    g.userData.visualLevel = level; g.userData.chatProgress = p; return g;
+
+    const front=w*.51;
+    addDoor(g,front,.56*s);
+    addWindow(g,-w*.30,1.25+h*.35,front);
+    addWindow(g,w*.30,1.25+h*.35,front);
+    addWindow(g,-front,1.25+h*.35,0,Math.PI/2);
+    addWindow(g,front,1.25+h*.35,0,Math.PI/2);
+    addChimney(g,w*.28,-w*.24,s);
+    addBanner(g,-w*.62,w*.20,level>=4?C.gold:0x8f6a4b,s);
+    addBanner(g,w*.62,w*.20,level>=4?C.gold:0x8f6a4b,s);
+
+    // Construction only belongs to this conversation house.
+    if(p<100){
+      const sc=material(0xb28755);
+      [-w*.68,w*.68].forEach(x=>{ const post=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,2.8*s,6),sc); post.position.set(x,1.35,0); g.add(post); });
+      const beam=meshBox(w*1.55,.07,.07,sc,2.25*s); beam.rotation.z=.16; g.add(beam);
+      const progress=new THREE.Mesh(new THREE.BoxGeometry(w*.85,.055,.055),material(C.teal,{emissive:C.teal,emissiveIntensity:1.2})); progress.position.set(0,2.38*s,.04); g.add(progress);
+    }
+    return g;
   }
 
-  function upgradeThreadBuildings() {
-    if (typeof threads === 'undefined') return;
-    scene.traverse(obj => {
-      if (obj.userData?.threadIndex === undefined || !obj.isGroup) return;
-      const thread = threads[obj.userData.threadIndex]; if (!thread) return;
-      const oldPos = obj.position.clone(), oldIndex = obj.userData.threadIndex, isMain = thread.type === 'hub';
-      const replacement = makeHouse(thread, isMain); obj.clear(); replacement.children.forEach(child => obj.add(child)); obj.position.copy(oldPos);
-      obj.userData.threadIndex = oldIndex; obj.userData.chatBuilding = true; obj.userData.chatLevel = replacement.userData.visualLevel; obj.userData.chatProgress = replacement.userData.chatProgress;
+  function makeHQ(thread) {
+    const g=makeChatHouse({...thread,progress:100});
+    g.userData.chatHQ=true;
+    // Fixed HQ identity: large, stable, unmistakable ChatGPT centerpiece.
+    const w=3.05;
+    const facade=meshBox(2.9,2.05,2.9,material(0x284953),2.05); g.add(facade);
+    const roof=new THREE.Mesh(new THREE.ConeGeometry(2.45,1.25,4),material(0x1d4e5b)); roof.position.y=3.45; roof.rotation.y=Math.PI/4; g.add(roof);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(.72,.085,12,64),material(C.cyan,{emissive:C.cyan,emissiveIntensity:2.2})); ring.rotation.x=Math.PI/2; ring.position.y=5.05; g.add(ring);
+    const orb=new THREE.Mesh(new THREE.SphereGeometry(.30,24,16),material(C.cyan,{emissive:C.cyan,emissiveIntensity:2.5})); orb.position.y=5.05; g.add(orb);
+    const emblem=new THREE.Mesh(new THREE.CircleGeometry(.52,32),material(C.teal,{emissive:C.teal,emissiveIntensity:1.4})); emblem.position.set(0,2.55,1.48); emblem.rotation.x=0; g.add(emblem);
+    return g;
+  }
+
+  function rebuildBuildings() {
+    if(typeof threads==='undefined') return;
+    const old=[];
+    scene.traverse(o=>{ if(o.isGroup && o.userData?.threadIndex!==undefined) old.push(o); });
+    old.forEach(o=>{
+      const t=threads[o.userData.threadIndex]; if(!t) return;
+      const pos=o.position.clone(); const replacement=t.type==='hub'?makeHQ(t):makeChatHouse(t);
+      replacement.position.copy(pos); replacement.userData.threadIndex=o.userData.threadIndex; replacement.userData.chatBuilding=true;
+      scene.add(replacement); o.visible=false;
     });
-    scene.traverse(obj => { if (obj.userData?.rtsBuilding?.type === 'towncenter') obj.visible = false; });
+    scene.traverse(o=>{ if(o.userData?.rtsBuilding?.type==='towncenter') o.visible=false; });
   }
 
-  function upgradeResources() {
-    scene.traverse(obj => {
-      if (!obj.userData?.rtsNode || !obj.isGroup) return;
-      const type = obj.userData.rtsNode.type; obj.clear();
-      if (type === 'wood') {
-        for (let i=0;i<3;i++) { const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.10,.14,1.2,8),mat(colors.wood)); trunk.position.set((i-1)*.32,.95,(i%2)*.28-.14); obj.add(trunk); const crown=new THREE.Mesh(new THREE.SphereGeometry(.48,10,8),mat(0x2e6b42)); crown.position.set((i-1)*.32,1.75,(i%2)*.28-.14); obj.add(crown); }
-      } else if (type === 'stone') {
-        for (let i=0;i<5;i++) { const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.35+(i%3)*.07),mat(colors.stone)); rock.position.set((i-2)*.32,.55+(i%2)*.18,((i%2)-.5)*.45); obj.add(rock); }
-      } else {
-        obj.add(box(1.3,.08,1.3,mat(0x5a3e27),.08));
-        for(let i=0;i<9;i++){const plant=new THREE.Mesh(new THREE.ConeGeometry(.08,.35,5),mat(0x65a74a)); plant.position.set(-.5+(i%3)*.5,.28,-.5+Math.floor(i/3)*.5); obj.add(plant);}
-      }
+  function makeTree(x,z,s=1) {
+    const g=new THREE.Group();
+    const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.10*s,.17*s,1.35*s,7),material(C.wood)); trunk.position.y=.68*s; g.add(trunk);
+    for(let i=0;i<3;i++) { const c=new THREE.Mesh(new THREE.SphereGeometry((.48-i*.04)*s,10,8),material(i===0?0x3f7445:0x4f8150)); c.position.set((i-1)*.22*s,1.55*s+i*.18,.05*s); g.add(c); }
+    g.position.set(x,.98,z); scene.add(g);
+  }
+  function addLandscape() {
+    // Broad grassy plateau above the original dark island, with layered shoreline.
+    const land=new THREE.Mesh(new THREE.CylinderGeometry(14.4,14.9,1.0,64),material(C.grass,{roughness:1})); land.position.y=.98; scene.add(land);
+    const meadow=new THREE.Mesh(new THREE.CylinderGeometry(13.9,13.9,.10,64),material(C.grass2,{roughness:1})); meadow.position.y=1.50; scene.add(meadow);
+    const shore=new THREE.Mesh(new THREE.TorusGeometry(14.1,.32,8,96),material(0x314f3e)); shore.rotation.x=Math.PI/2; shore.position.y=1.53; scene.add(shore);
+
+    // Radial dirt roads and central stone plaza.
+    const roadMat=material(C.dirt,{roughness:1});
+    for(let i=0;i<8;i++){
+      const a=i*Math.PI/4; const road=meshBox(.72, .06, 12.0, roadMat,1.59); road.position.set(Math.sin(a)*6.0,0,Math.cos(a)*6.0); road.rotation.y=a; scene.add(road);
+    }
+    const plaza=new THREE.Mesh(new THREE.CylinderGeometry(3.4,3.4,.16,48),material(0x9b876c,{roughness:.9})); plaza.position.y=1.65; scene.add(plaza);
+
+    // Forest perimeter.
+    const trees=[[-10,-7,1.2],[-8,-8,.9],[-6,-9,1.05],[-3,-9,.9],[2,-9,1.15],[7,-8,1.1],[10,-6,1.25],[11,-2,.95],[10,4,1.2],[8,8,1.0],[3,9,1.2],[-2,9,.95],[-7,8,1.15],[-10,5,1.1],[-11,1,.9],[-9,-2,1.0]];
+    trees.forEach(t=>makeTree(t[0],t[1],t[2]));
+
+    // Mountains/rocky highlands at the far edge make the map read as a real world.
+    for(let i=0;i<10;i++){
+      const a=(i/10)*Math.PI*2+.2, r=13.2+(i%2)*.7;
+      const h=3.0+(i%4)*.9, m=new THREE.Mesh(new THREE.ConeGeometry(1.5+(i%3)*.35,h,7),material(i%2?0x596761:0x4c5b58,{roughness:1}));
+      m.position.set(Math.cos(a)*r,1.5+h/2,Math.sin(a)*r); scene.add(m);
+    }
+
+    // Water channels around the settlement.
+    const water=new THREE.Mesh(new THREE.CylinderGeometry(18.5,19.5,.45,64),material(C.deepWater,{roughness:.25,metalness:.25})); water.position.y=-.92; scene.add(water);
+    const inner=new THREE.Mesh(new THREE.TorusGeometry(15.2,.42,10,96),material(C.water,{roughness:.22,metalness:.25})); inner.rotation.x=Math.PI/2; inner.position.y=.05; scene.add(inner);
+  }
+
+  function addResourceDecoration() {
+    scene.traverse(o=>{
+      if(!o.userData?.rtsNode || !o.isGroup) return;
+      const type=o.userData.rtsNode.type; o.clear();
+      if(type==='wood') for(let i=0;i<5;i++) makeTreeLocal(o,(i-2)*.36,.0,1-(i%2)*.1);
+      else if(type==='stone') for(let i=0;i<7;i++){ const r=new THREE.Mesh(new THREE.DodecahedronGeometry(.30+(i%3)*.08),material(C.stone,{roughness:1})); r.position.set((i-3)*.28,.45,(i%2-.5)*.5); r.rotation.set(i*.3,i*.5,0); o.add(r); }
+      else { o.add(meshBox(1.5,.08,1.5,material(0x684a2f),.06)); for(let i=0;i<12;i++){ const p=new THREE.Mesh(new THREE.ConeGeometry(.07,.34,5),material(0x6ea94c)); p.position.set(-.55+(i%4)*.36,.25,-.55+Math.floor(i/4)*.5); o.add(p); } }
     });
   }
+  function makeTreeLocal(g,x,z,s=1){ const tr=new THREE.Mesh(new THREE.CylinderGeometry(.08*s,.12*s,.9*s,7),material(C.wood)); tr.position.set(x,.45,z); g.add(tr); const c=new THREE.Mesh(new THREE.SphereGeometry(.4*s,9,7),material(0x3f7445)); c.position.set(x,.95*s,z); g.add(c); }
 
-  function addWorldDetails() {
-    for (let i=0;i<28;i++) { const a=(i/28)*Math.PI*2, r=8.8+(i%4)*.65; const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.16+(i%3)*.06),mat(0x686660)); rock.position.set(Math.cos(a)*r,.98,Math.sin(a)*r); scene.add(rock); }
+  function widenCamera() {
+    cameraRadius=Math.max(cameraRadius||22,38);
+    camera.position.set(0,0,0);
+    if(typeof updateCamera==='function') updateCamera();
+    // Extra wide scroll range on desktop.
+    renderer.domElement.addEventListener('wheel',e=>{
+      cameraRadius += e.deltaY*.045;
+      cameraRadius=Math.max(20,Math.min(55,cameraRadius));
+      updateCamera();
+    },{passive:true});
+    // Two-finger pinch zoom for mobile.
+    let lastDist=null;
+    renderer.domElement.addEventListener('touchmove',e=>{
+      if(e.touches.length!==2){lastDist=null;return;}
+      const dx=e.touches[0].clientX-e.touches[1].clientX, dy=e.touches[0].clientY-e.touches[1].clientY;
+      const d=Math.hypot(dx,dy); if(lastDist!==null){ cameraRadius-=(d-lastDist)*.055; cameraRadius=Math.max(20,Math.min(55,cameraRadius)); updateCamera(); }
+      lastDist=d;
+    },{passive:true});
+    renderer.domElement.addEventListener('touchend',()=>{lastDist=null;},{passive:true});
   }
-  function boot(){ upgradeThreadBuildings(); upgradeResources(); addWorldDetails(); }
+
+  function boot(){
+    // Let the existing gameplay layer remain functional while replacing its primitive presentation.
+    addLandscape();
+    rebuildBuildings();
+    addResourceDecoration();
+    widenCamera();
+  }
   wait(boot);
 })();
