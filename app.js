@@ -1,7 +1,5 @@
 const world=document.getElementById("world");
 
-const world=document.getElementById("world");
-
 const threads=[
 {name:"Creative Studio",state:"working",x:-3.2,z:-1.8,progress:72,type:"studio"},
 {name:"Career Planning",state:"waiting",x:3,z:-1.8,progress:48,type:"office"},
